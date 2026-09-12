@@ -106,7 +106,11 @@ def run_turn(session_id: str, user_text: str, lang: str = "ml") -> str:
                 }
             )
     else:
-        reply = "വിവരങ്ങൾ പൂർണ്ണമായി ലഭിച്ചു. ഒരു ചോദ്യം കൂടി ചോദിക്കാമോ, അതോ ഞാൻ മറ്റെന്തെങ്കിലും അറിയിച്ചുതരട്ടെ?"
+        reply = (
+            "ഞാൻ ഇപ്പോൾ നിങ്ങളുടെ കാര്യം പോർട്ടലിൽ നടപടിയിലാണ് — ഒരു ചെറിയ ഇടവേള കഴിഞ്ഞ് "
+            "'continue / തുടരുക' എന്ന് പറഞ്ഞാൽ ഞാൻ അടുത്ത ഘട്ടം ചെയ്യാം."
+            " / I\'m mid-way on the portal. Say 'continue' and I'll take the next step."
+        )
 
     db.save_message(session_id, "user", user_text)
     db.save_message(session_id, "assistant", reply)

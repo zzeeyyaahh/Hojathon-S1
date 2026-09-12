@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 from fastapi import FastAPI, File, HTTPException, UploadFile, Header
 from fastapi.responses import FileResponse
@@ -212,19 +213,35 @@ def review_workflow(draft_id: str, authorization: str = Header(default="")):
 
 
 @app.post("/api/workflows/{draft_id}/submit")
-def submit_workflow(draft_id: str, authorization: str = Header(default="")):
+async def submit_workflow(draft_id: str, authorization: str = Header(default="")):
     user = _current_user(authorization)
     draft = db.get_draft(draft_id, user["id"])
     if not draft or draft["status"] != "reviewed":
         raise HTTPException(409, "Review the completed form before submitting.")
     service = _service_or_404(draft["service_id"])
-    receipt = db.create_application(user["id"], service["id"], draft["payload"], status="Ready for official portal")
+    receipt = db.create_application(user["id"], service["id"], draft["payload"], status="Submitted for portal run")
     db.update_draft(draft_id, user["id"], draft["payload"], status="submitted")
+    # The citizen approved the reviewed draft: hand it to the agent so IT opens the
+    # official portal and does the work, asking consent and pausing for OTP/CAPTCHA.
+    instruction = (
+        f"I reviewed and approved my {service['name_en']} request. "
+        f"Confirmed details: {json.dumps(draft['payload'], ensure_ascii=False)}. "
+        f"Open the official portal {service.get('portal')} in the browser window and carry out the "
+        f"{service['name_en']} flow for me step by step. Fill the form with my confirmed details, "
+        f"read each page before acting, and ask my permission before entering personal details or "
+        f"submitting. If an OTP, CAPTCHA or login appears, stop and tell me to complete it in the window."
+    )
+    agent_reply = ""
+    try:
+        agent_reply = await _run_agent(user["id"], instruction, "en")
+    except Exception as exc:  # keep the receipt even if the portal step fails
+        agent_reply = f"I saved your approved {service['name_en']} request, but the portal step failed: {exc}"
     return {
         "submitted": True,
         "receipt": receipt,
         "portal": service.get("portal"),
-        "message": "Your reviewed draft is ready for the official portal. A live portal connector has not been configured yet.",
+        "message": "Approved. The agent is doing the rest of the work on the official portal now.",
+        "agent_reply": agent_reply,
     }
 
 

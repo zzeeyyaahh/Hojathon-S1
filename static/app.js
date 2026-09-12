@@ -201,13 +201,15 @@
   }
 
   function submitWorkflow() {
+    workflowMessage("Approved. The agent is opening the official portal and doing the rest of the work…");
     api("/api/workflows/" + activeWorkflow.id + "/submit", { method: "POST" }).then(function (result) {
       if (!result.ok) { workflowMessage(result.body.detail || "Could not submit."); return; }
+      var body = result.body;
       workflowPanel.textContent = "";
-      var msg = document.createElement("p"); msg.textContent = result.body.message + " Receipt: " + result.body.receipt;
+      var msg = document.createElement("p"); msg.textContent = body.message + " Receipt: " + body.receipt;
       workflowPanel.appendChild(msg);
-      var portal = document.createElement("a"); portal.href = result.body.portal; portal.target = "_blank"; portal.rel = "noopener"; portal.textContent = "Open official Aadhaar portal";
-      workflowPanel.appendChild(portal);
+      if (body.agent_reply) bubble("agent", body.agent_reply);
+      startBrowserPoll();
     });
   }
 

@@ -20,5 +20,5 @@ PROFILE_FIELDS = [
     {"field": "district", "label_ml": "ഏത് ജില്ലയിലാണ് നിങ്ങൾ താമസിക്കുന്നത്?", "label_en": "Which district do you live in?"},
 ]
 
-MAX_AGENT_ITER = 6
+MAX_AGENT_ITER = 12
 HISTORY_TURNS = 12
