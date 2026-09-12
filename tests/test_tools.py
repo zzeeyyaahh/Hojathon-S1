@@ -22,9 +22,16 @@ assert r["found"] and r["service"]["id"] == "welfare_pension", r
 r = tool(
     "check_eligibility",
     {"service_id": "ration_card",
-     "answers": {"family_size": 4, "already_has_card": False, "family_survey_state": True}},
+     "answers": {"age": 35, "family_size": 4, "already_has_card": False, "family_survey_state": True}},
 )
 assert r["all_pass"] is True, r
+
+r = tool(
+    "check_eligibility",
+    {"service_id": "ration_card",
+     "answers": {"age": 3, "family_size": 4, "already_has_card": False, "family_survey_state": True}},
+)
+assert r["all_pass"] is False and r["results"][0]["field"] == "age" and r["results"][0]["pass"] is False, r
 
 r = tool(
     "check_eligibility",
@@ -75,15 +82,20 @@ assert r["saved"], r
 r = tool("get_user_profile", {})
 assert r["profile"].get("district") == "Ernakulam", r
 
-# Profile sign-up wizard
-r = tool("setup_profile", {"answers": {"name": "Anu"}})
+# Profile sign-up wizard (fresh session, DB is persistent)
+ctx2 = {"session_id": "t2"}
+
+def tool2(name, args):
+    return tools.run_tool(name, json.dumps(args, ensure_ascii=False), ctx2)
+
+r = tool2("setup_profile", {"answers": {"name": "Anu"}})
 assert r["done"] is False and r["current_field"] == "age", r
 
-r = tool("setup_profile", {"answers": {"age": 35, "family_size": 4, "annual_income": 300000,
-                                       "district": "Kozhikode", "occupation": "teacher"}})
+r = tool2("setup_profile", {"answers": {"age": 35, "family_size": 4, "annual_income": 300000,
+                                        "district": "Kozhikode", "occupation": "teacher"}})
 assert r["done"] is True and r["profile"]["name"] == "Anu", r
 
-r = tool("get_user_profile", {})
+r = tool2("get_user_profile", {})
 assert r["profile"]["occupation"] == "teacher" and r["profile"]["family_size"] == "4", r
 
 print("ALL TOOL TESTS PASSED")

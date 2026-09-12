@@ -31,6 +31,15 @@
       "summary_en": "Family card for subsidized food grains. You can apply for a new card, division, or name change.",
       "eligibility": [
         {
+          "field": "age",
+          "question_ml": "അപേക്ഷകന്റെ വയസ്സ് 18-ഓ അതിൽ കൂടുതലോ ആണോ?",
+          "question_en": "Is the applicant 18 or older (adult household head)?",
+          "type": "number",
+          "rule": {"op": "gte", "args": ["age", 18]},
+          "failure_note_ml": "റേഷൻ കാർഡ് അപേക്ഷിക്കാൻ അപേക്ഷകൻ (കുടുംബനാഥൻ) പ്രായപൂർത്തിയായ ആളായിരിക്കണം. കുടുംബനാഥനായ മുതിർന്ന ഒരാളുടെ വിവരങ്ങൾ നൽകുക. 18 വയസ്സിൽ താഴെയുള്ളവർ കുടുംബാംഗമായി ഉൾപ്പെടുന്നതാണ്.",
+          "failure_note_en": "The applicant (household head) must be an adult (18+). Ask the adult family head to apply; minors can be listed as family members."
+        },
+        {
           "field": "family_size",
           "question_ml": "കുടുംബത്തിലെ അംഗങ്ങളുടെ എണ്ണം എത്രയാണ്?",
           "question_en": "How many members in your family?",
