@@ -6,7 +6,7 @@ import httpx
 
 from . import config
 
-_GEMINI_KEYS = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash-001"]
+_GEMINI_KEYS = config.GEMINI_MODELS
 
 
 @dataclass
@@ -133,10 +133,10 @@ def _gemini_generate(messages: list, tools: list | None) -> LLMResponse:
                         if attempt == 1:
                             time.sleep(min(_parse_retry_seconds(msg) + 5, 65))
                             continue
-                        raise RuntimeError(
-                            f"{model}: rate limited, try again in about "
-                            f"{_parse_retry_seconds(msg):.0f}s"
+                        errors.append(
+                            f"{model}: rate limited (retry in ~{_parse_retry_seconds(msg):.0f}s)"
                         )
+                        break
                     if r.status_code in (500, 503) and attempt == 1:
                         time.sleep(8)
                         continue
