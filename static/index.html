@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0e5a4a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <title>സേവ — Kerala Civic Voice Assistant</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">സേവ</div>
+    <div class="head-text">
+      <h1>സേവ — Civic Voice Assistant</h1>
+      <p>കേരള സർക്കാർ സേവനങ്ങൾ, നിങ്ങളുടെ ഭാഷയിൽ</p>
+    </div>
+  </header>
+
+  <main>
+    <section id="chips">
+      <button class="chip" data-msg="എനിക്ക് റേഷൻ കാർഡ് കിട്ടാൻ എന്താണ് വേണ്ടത്?">🚩 റേഷൻ കാർഡ്</button>
+      <button class="chip" data-msg="എന്റെ പരാതി എന്ത് നിലയിലാണ്? ഐഡി GR-2026-1187">📋 പരാതി ട്രാക്ക്</button>
+      <button class="chip" data-msg="സ്കോളർഷിപ്പിന് യോഗ്യനാണോ എന്ന് പരിശോധിക്കാം">🎓 സ്കോളർഷിപ്പ്</button>
+      <button class="chip" data-msg="എന്തൊക്കെ സേവനങ്ങൾ ഉണ്ട്?">🏛️ സേവനങ്ങൾ</button>
+    </section>
+
+    <section id="chat" aria-live="polite"></section>
+
+    <div id="typing" class="typing hidden"><span></span><span></span><span></span></div>
+
+    <section id="composer">
+      <button id="micBtn" class="mic" title="സംസാരിക്കുക" aria-label="Speak">
+        <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+          <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
+          <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"/>
+        </svg>
+      </button>
+      <input id="textInput" type="text" placeholder="പ്രശ്നം ടൈപ്പ് ചെയ്യുക..." autocomplete="off">
+      <button id="sendBtn" class="send" title="അയയ്ക്കുക">➤</button>
+    </section>
+
+    <label class="voice-toggle">
+      <input type="checkbox" id="voiceToggle" checked> വോയ്സ് റെസ്പോൺസ് 🔊
+    </label>
+    <div class="install-row">
+      <button id="installBtn" class="hidden install-btn">📲 ആപ്പായി ഇൻസ്റ്റാൾ ചെയ്യുക</button>
+    </div>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

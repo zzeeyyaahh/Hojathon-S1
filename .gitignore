@@ -44,3 +44,12 @@ desktop.ini
 *.temp
 *.bak
 *.cache
+
+# ---- Python (Seva civic agent) ----
+.venv/
+__pycache__/
+*.pyc
+data/citizens.db
+static/tts/
+tests/__pycache__/
+node_modules/
