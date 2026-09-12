@@ -225,12 +225,19 @@
   function setBrowserPanel(active, data) {
     if (!active) { stopBrowserPoll(); browserPanel.classList.add("hidden"); return; }
     browserPanel.classList.remove("hidden");
+    var urlEl = document.getElementById("browserUrl");
+    if (urlEl) urlEl.textContent = data.url || data.title || "…";
     if (data.screenshot) browserShot.src = data.screenshot;
-    var bits = [];
-    if (data.title) bits.push(data.title);
-    if (data.status) bits.push("(" + data.status + ")");
-    if (data.needs_user) bits.push("⛔ " + t("browserNeeds"));
-    browserStatusEl.textContent = bits.join("  ");
+    browserStatusEl.className = "status-pill";
+    if (data.needs_user) {
+      browserStatusEl.textContent = "⏳ " + t("browserNeeds");
+      browserStatusEl.classList.add("is-need");
+    } else if (data.error) {
+      browserStatusEl.textContent = "⚠ " + data.error;
+      browserStatusEl.classList.add("is-error");
+    } else {
+      browserStatusEl.textContent = data.status || "idle";
+    }
     browserAllow.classList.toggle("hidden", !data.needs_user);
   }
 

@@ -3,79 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0e5a4a">
+  <meta name="theme-color" content="#0b6b4f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <title>സേവ — Aadhaar Update Assistant</title>
+  <title>സേവ — Civic Assistant</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <section id="authGate" class="auth-gate" aria-label="Account access">
-    <div class="auth-card">
-      <div class="auth-logo">സേവ</div>
-      <h2>Your private civic assistant</h2>
-      <p>Voice or type in Malayalam or English. Your profile and applications stay in your own account.</p>
-      <input id="authEmail" type="email" placeholder="Email address" autocomplete="email">
-      <input id="authPassword" type="password" placeholder="Password (at least 8 characters)" autocomplete="current-password">
-      <div class="auth-actions">
-        <button id="loginBtn" class="auth-primary">Sign in</button>
-        <button id="registerBtn" class="auth-secondary">Create account</button>
+  <div id="app">
+    <section id="authGate" class="auth-gate" aria-label="Account access">
+      <div class="auth-card">
+        <div class="auth-logo">സേ</div>
+        <h2>Your private civic assistant</h2>
+        <p>Voice or type in Malayalam or English. Your profile and applications stay in your own account.</p>
+        <input id="authEmail" type="email" placeholder="Email address" autocomplete="email">
+        <input id="authPassword" type="password" placeholder="Password (at least 8 characters)" autocomplete="current-password">
+        <div class="auth-actions">
+          <button id="loginBtn" class="auth-primary">Sign in</button>
+          <button id="registerBtn" class="auth-secondary">Create account</button>
+        </div>
+        <p id="authError" class="auth-error" aria-live="polite"></p>
+        <small>Before anything is submitted on an official portal, Seva shows the completed information and asks for your approval. You complete any OTP or CAPTCHA yourself.</small>
       </div>
-      <p id="authError" class="auth-error" aria-live="polite"></p>
-      <small>Before anything is submitted on an official portal, Seva shows the completed information and asks for your approval. You complete any OTP or CAPTCHA yourself.</small>
+    </section>
+
+    <header>
+      <div class="logo">സേ</div>
+      <div class="head-text">
+        <h1>സേവ — Civic Assistant</h1>
+        <p>ആധാർ, പെൻഷൻ, സർട്ടിഫിക്കറ്റുകൾ — നിങ്ങളുടെ ഭാഷയിൽ</p>
+      </div>
+      <div class="header-actions">
+        <button id="langToggle" class="lang-toggle" title="Change language">EN</button>
+        <button id="logoutBtn" class="logout hidden" title="Sign out">Sign out</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="chips">
+        <button id="aadhaarStart" class="chip">🪪 Start Aadhaar update</button>
+      </section>
+
+      <section id="workflowPanel" class="workflow-panel hidden" aria-live="polite"></section>
+
+      <section id="chat" aria-live="polite"></section>
+
+      <div id="typing" class="typing hidden"><span></span><span></span><span></span></div>
+    </main>
+
+    <div class="dock">
+      <section id="composer">
+        <button id="micBtn" class="mic" title="സംസാരിക്കുക" aria-label="Speak">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
+            <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"/>
+          </svg>
+        </button>
+        <input id="textInput" type="text" placeholder="പ്രശ്നം ടൈപ്പ് ചെയ്യുക..." autocomplete="off">
+        <button id="sendBtn" class="send" title="അയയ്ക്കുക">➤</button>
+      </section>
+      <label class="voice-toggle">
+        <input type="checkbox" id="voiceToggle" checked> വോയ്സ് റെസ്പോൺസ് 🔊
+      </label>
+      <div class="install-row">
+        <button id="installBtn" class="hidden install-btn">📲 ആപ്പായി ഇൻസ്റ്റാൾ ചെയ്യുക</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="browserPanel" class="browser-panel hidden">
+    <div class="browser-head">
+      <div class="window-dots"><i></i><i></i><i></i></div>
+      <span class="browser-title">SEVA — PORTAL WINDOW</span>
+    </div>
+    <div class="browser-urlbar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"/></svg>
+      <span id="browserUrl">—</span>
+    </div>
+    <div class="browser-screen">
+      <img id="browserShot" alt="Live view of the official portal window">
+      <div class="browser-screen-fallback">Waiting for the portal…</div>
+    </div>
+    <div class="browser-statusrow">
+      <span id="browserStatus" class="status-pill">idle</span>
+    </div>
+    <div class="browser-actions">
+      <button id="browserAllow" class="btn-allow hidden">✅ Allow — continue</button>
+      <button id="browserClose" class="btn-close">✕ Close window</button>
     </div>
   </section>
-  <header>
-    <div class="logo">സേവ</div>
-    <div class="head-text">
-      <h1>സേവ — Aadhaar Update Assistant</h1>
-      <p>ആധാർ അപ്ഡേറ്റ്, നിങ്ങളുടെ ഭാഷയിൽ</p>
-    </div>
-    <button id="langToggle" class="lang-toggle" title="Change language">EN</button>
-    <button id="logoutBtn" class="logout hidden" title="Sign out">Sign out</button>
-  </header>
-
-  <main>
-    <section id="chips">
-      <button id="aadhaarStart" class="chip">🪪 Start Aadhaar update</button>
-    </section>
-
-<section id="workflowPanel" class="workflow-panel hidden" aria-live="polite"></section>
-
-    <section id="browserPanel" class="browser-panel hidden">
-      <img id="browserShot" alt="Live view of the official portal window">
-      <div id="browserStatus" class="browser-status">Preparing the portal…</div>
-      <div class="browser-actions">
-        <button id="browserAllow" class="btn-allow hidden">✅ Allow — continue</button>
-        <button id="browserClose" class="btn-close">✕ Close</button>
-      </div>
-    </section>
-
-    <section id="chat" aria-live="polite"></section>
-
-    <div id="typing" class="typing hidden"><span></span><span></span><span></span></div>
-
-    <section id="composer">
-      <button id="micBtn" class="mic" title="സംസാരിക്കുക" aria-label="Speak">
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
-          <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
-          <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2.08A7 7 0 0 0 19 11z"/>
-        </svg>
-      </button>
-      <input id="textInput" type="text" placeholder="പ്രശ്നം ടൈപ്പ് ചെയ്യുക..." autocomplete="off">
-      <button id="sendBtn" class="send" title="അയയ്ക്കുക">➤</button>
-    </section>
-
-    <label class="voice-toggle">
-      <input type="checkbox" id="voiceToggle" checked> വോയ്സ് റെസ്പോൺസ് 🔊
-    </label>
-    <div class="install-row">
-      <button id="installBtn" class="hidden install-btn">📲 ആപ്പായി ഇൻസ്റ്റാൾ ചെയ്യുക</button>
-    </div>
-  </main>
 
   <script src="/static/app.js"></script>
 </body>
