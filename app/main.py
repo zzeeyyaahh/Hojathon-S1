@@ -18,6 +18,7 @@ app = FastAPI(title="Sevana Voice — Kerala Civic Agent")
 class ChatRequest(BaseModel):
     session_id: str = ""
     text: str
+    lang: str = "ml"
 
 
 class SessionResponse(BaseModel):
@@ -65,16 +66,16 @@ async def chat(req: ChatRequest):
     if not text:
         raise HTTPException(400, "text is required")
     sid = req.session_id or "demo"
-    reply = await _run_agent(sid, text)
-    audio_path = await tts.synthesize(reply)
+    reply = await _run_agent(sid, text, req.lang)
+    audio_path = await tts.synthesize(reply, req.lang)
     audio_url = f"/static/tts/{os.path.basename(audio_path)}"
     return ChatResponse(session_id=sid, user_text=text, reply=reply, audio_url=audio_url)
 
 
-async def _run_agent(sid: str, text: str) -> str:
+async def _run_agent(sid: str, text: str, lang: str = "ml") -> str:
     import asyncio
 
-    return await asyncio.to_thread(agent.run_turn, sid, text)
+    return await asyncio.to_thread(agent.run_turn, sid, text, lang)
 
 
 @app.post("/api/asr")
@@ -96,6 +97,6 @@ async def _run_asr(content, filename, mime):
 
 
 @app.get("/api/tts")
-async def tts_endpoint(text: str = "ഹലോ"):
-    path = await tts.synthesize(text)
+async def tts_endpoint(text: str = "ഹലോ", lang: str = "ml"):
+    path = await tts.synthesize(text, lang)
     return FileResponse(path, media_type="audio/mpeg")

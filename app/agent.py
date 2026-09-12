@@ -26,19 +26,25 @@ BEHAVIOUR RULES:
 9. Never dump raw JSON or tool output to the user. Always phrase results conversationally.
 10. If a tool returns f"error..." or the user's intent is unclear, ask one clarifying question."""
 
+_LANG_RULE = {
+    "ml": "REPLY LANGUAGE: Reply conversationally in Malayalam (മലയാളം). Mixing common English words like 'portal', 'receipt', 'complaint ID' is fine.",
+    "en": "REPLY LANGUAGE: Reply conversationally in simple, clear English (don't add Malayalam).",
+}
+
 _SERVICES_LINE = "കേരള സർക്കാർ സേവനങ്ങൾ: " + ", ".join(
     s["name_ml"] for s in kb.get_all_services()
 )
 
 
-def _system_message(profile: dict) -> dict:
+def _system_message(profile: dict, lang: str = "ml") -> dict:
     profile_line = ""
     if profile:
         profile_line = "\nUser profile (known so far): " + json.dumps(profile, ensure_ascii=False)
-    return {"role": "system", "content": SYSTEM_PROMPT + "\n" + _SERVICES_LINE + profile_line}
+    lang_rule = _LANG_RULE.get(lang, _LANG_RULE["ml"])
+    return {"role": "system", "content": SYSTEM_PROMPT + "\n" + _SERVICES_LINE + "\n" + lang_rule + profile_line}
 
 
-def run_turn(session_id: str, user_text: str) -> str:
+def run_turn(session_id: str, user_text: str, lang: str = "ml") -> str:
     profile = db.get_profile(session_id)
     history = db.load_history(session_id, config.HISTORY_TURNS)
 
@@ -48,7 +54,7 @@ def run_turn(session_id: str, user_text: str) -> str:
             "[User profile (read when helpful): " + json.dumps(profile, ensure_ascii=False) + "]\n" + user_text
         )
 
-    messages = [_system_message(profile)] + history + [
+    messages = [_system_message(profile, lang)] + history + [
         {"role": "user", "content": user_message}
     ]
     ctx = {"session_id": session_id}
