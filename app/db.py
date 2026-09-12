@@ -1,6 +1,9 @@
 import os
 import sqlite3
 import uuid
+import hashlib
+import hmac
+import secrets
 from datetime import datetime, timedelta
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +31,20 @@ def _connect():
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with _connect() as c:
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS users(
+                id TEXT PRIMARY KEY,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL)"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS auth_tokens(
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL)"""
+        )
         c.execute(
             """CREATE TABLE IF NOT EXISTS user_profiles(
                 session_id TEXT NOT NULL,
@@ -70,6 +87,70 @@ def init_db():
                 submitted_at TEXT)"""
         )
     _seed_complaints()
+
+
+def _password_hash(password: str, salt: bytes | None = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 310_000)
+    return salt.hex() + "$" + digest.hex()
+
+
+def _password_matches(password: str, encoded: str) -> bool:
+    try:
+        salt_hex, expected = encoded.split("$", 1)
+        actual = _password_hash(password, bytes.fromhex(salt_hex)).split("$", 1)[1]
+        return hmac.compare_digest(actual, expected)
+    except (TypeError, ValueError):
+        return False
+
+
+def create_user(email: str, password: str) -> dict:
+    email = (email or "").strip().lower()
+    if not email or "@" not in email or len(password or "") < 8:
+        raise ValueError("Use a valid email and a password of at least 8 characters.")
+    user = {"id": "usr_" + uuid.uuid4().hex, "email": email}
+    try:
+        with _connect() as c:
+            c.execute("INSERT INTO users(id, email, password_hash, created_at) VALUES (?,?,?,?)",
+                      (user["id"], email, _password_hash(password), datetime.now().isoformat()))
+    except sqlite3.IntegrityError as exc:
+        raise ValueError("An account with that email already exists.") from exc
+    return user
+
+
+def authenticate_user(email: str, password: str) -> dict | None:
+    with _connect() as c:
+        row = c.execute("SELECT id, email, password_hash FROM users WHERE email=?", ((email or "").strip().lower(),)).fetchone()
+    if not row or not _password_matches(password or "", row["password_hash"]):
+        return None
+    return {"id": row["id"], "email": row["email"]}
+
+
+def issue_token(user_id: str) -> str:
+    token = secrets.token_urlsafe(32)
+    expiry = (datetime.now() + timedelta(days=14)).isoformat()
+    with _connect() as c:
+        c.execute("INSERT INTO auth_tokens(token, user_id, expires_at, created_at) VALUES (?,?,?,?)",
+                  (token, user_id, expiry, datetime.now().isoformat()))
+    return token
+
+
+def get_user_for_token(token: str) -> dict | None:
+    with _connect() as c:
+        row = c.execute("""SELECT u.id, u.email FROM auth_tokens t JOIN users u ON u.id=t.user_id
+                           WHERE t.token=? AND t.expires_at>?""", (token, datetime.now().isoformat())).fetchone()
+    return dict(row) if row else None
+
+
+def revoke_token(token: str):
+    with _connect() as c:
+        c.execute("DELETE FROM auth_tokens WHERE token=?", (token,))
+
+
+def list_applications(session_id: str) -> list:
+    with _connect() as c:
+        rows = c.execute("SELECT id, service_id, status, submitted_at FROM applications WHERE session_id=? ORDER BY submitted_at DESC", (session_id,)).fetchall()
+    return [dict(row) for row in rows]
 
 
 def _seed_complaints():

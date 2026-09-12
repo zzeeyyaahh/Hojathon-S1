@@ -13,6 +13,21 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <section id="authGate" class="auth-gate" aria-label="Account access">
+    <div class="auth-card">
+      <div class="auth-logo">സേവ</div>
+      <h2>Your private civic assistant</h2>
+      <p>Voice or type in Malayalam or English. Your profile and applications stay in your own account.</p>
+      <input id="authEmail" type="email" placeholder="Email address" autocomplete="email">
+      <input id="authPassword" type="password" placeholder="Password (at least 8 characters)" autocomplete="current-password">
+      <div class="auth-actions">
+        <button id="loginBtn" class="auth-primary">Sign in</button>
+        <button id="registerBtn" class="auth-secondary">Create account</button>
+      </div>
+      <p id="authError" class="auth-error" aria-live="polite"></p>
+      <small>Before anything is submitted on an official portal, Seva shows the completed information and asks for your approval. You complete any OTP or CAPTCHA yourself.</small>
+    </div>
+  </section>
   <header>
     <div class="logo">സേവ</div>
     <div class="head-text">
@@ -20,6 +35,7 @@
       <p>കേരള സർക്കാർ സേവനങ്ങൾ, നിങ്ങളുടെ ഭാഷയിൽ</p>
     </div>
     <button id="langToggle" class="lang-toggle" title="Change language">EN</button>
+    <button id="logoutBtn" class="logout hidden" title="Sign out">Sign out</button>
   </header>
 
   <main>

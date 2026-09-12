@@ -78,10 +78,41 @@
   var voiceToggleLabel = document.querySelector(".voice-toggle");
   var welcomeEl = null;
 
-  var sessionId = localStorage.getItem("seva_session") || "";
-  if (!sessionId) {
-    sessionId = "s" + Math.random().toString(36).slice(2, 12);
-    localStorage.setItem("seva_session", sessionId);
+  var authToken = localStorage.getItem("seva_token") || "";
+  var authGate = document.getElementById("authGate");
+  var authError = document.getElementById("authError");
+  var logoutBtn = document.getElementById("logoutBtn");
+
+  function authHeaders(extra) {
+    var headers = extra || {};
+    if (authToken) headers.Authorization = "Bearer " + authToken;
+    return headers;
+  }
+
+  function showAuthError(message) { authError.textContent = message || "Unable to sign in. Please try again."; }
+  function enterApp() { authGate.classList.add("hidden"); logoutBtn.classList.remove("hidden"); }
+  function authenticate(mode) {
+    var email = document.getElementById("authEmail").value.trim();
+    var password = document.getElementById("authPassword").value;
+    authError.textContent = "";
+    fetch("/api/auth/" + mode, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email, password: password }) })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.body.token) { showAuthError(result.body.detail); return; }
+        authToken = result.body.token;
+        localStorage.setItem("seva_token", authToken);
+        enterApp();
+      }).catch(function () { showAuthError("Could not reach the server."); });
+  }
+  document.getElementById("loginBtn").addEventListener("click", function () { authenticate("login"); });
+  document.getElementById("registerBtn").addEventListener("click", function () { authenticate("register"); });
+  logoutBtn.addEventListener("click", function () {
+    fetch("/api/auth/logout", { method: "POST", headers: authHeaders() }).finally(function () {
+      authToken = ""; localStorage.removeItem("seva_token"); authGate.classList.remove("hidden"); logoutBtn.classList.add("hidden");
+    });
+  });
+  if (authToken) {
+    fetch("/api/me", { headers: authHeaders() }).then(function (r) { if (r.ok) enterApp(); else localStorage.removeItem("seva_token"); }).catch(function () {});
   }
 
   // ---------- Static UI language ----------
@@ -157,13 +188,14 @@
 
     fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: sessionId, text: text, lang: lang }),
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ text: text, lang: lang }),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         setTyping(false);
         if (!data || !data.reply) {
+          if (data && data.detail) bubble("agent", data.detail);
           bubble("agent", t("errGeneric"));
           return;
         }

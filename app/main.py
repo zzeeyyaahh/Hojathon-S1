@@ -1,7 +1,5 @@
 import os
-import uuid
-
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -16,17 +14,21 @@ app = FastAPI(title="Sevana Voice — Kerala Civic Agent")
 
 
 class ChatRequest(BaseModel):
-    session_id: str = ""
     text: str
     lang: str = "ml"
 
 
-class SessionResponse(BaseModel):
-    session_id: str
+class AuthRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    email: str
 
 
 class ChatResponse(BaseModel):
-    session_id: str
     user_text: str
     reply: str
     audio_url: str = ""
@@ -55,25 +57,64 @@ def service_worker():
     return FileResponse(os.path.join(STATIC_DIR, "sw.js"), media_type="application/javascript")
 
 
-@app.post("/api/session", response_model=SessionResponse)
-def create_session():
-    return SessionResponse(session_id=uuid.uuid4().hex[:16])
+def _current_user(authorization: str = Header(default="")) -> dict:
+    scheme, _, token = authorization.partition(" ")
+    user = db.get_user_for_token(token) if scheme.lower() == "bearer" and token else None
+    if not user:
+        raise HTTPException(401, "Please sign in to access your private assistant.")
+    return user
+
+
+@app.post("/api/auth/register", response_model=AuthResponse)
+def register(req: AuthRequest):
+    try:
+        user = db.create_user(req.email, req.password)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return AuthResponse(token=db.issue_token(user["id"]), email=user["email"])
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(req: AuthRequest):
+    user = db.authenticate_user(req.email, req.password)
+    if not user:
+        raise HTTPException(401, "Incorrect email or password.")
+    return AuthResponse(token=db.issue_token(user["id"]), email=user["email"])
+
+
+@app.post("/api/auth/logout")
+def logout(authorization: str = Header(default="")):
+    _, _, token = authorization.partition(" ")
+    if token:
+        db.revoke_token(token)
+    return {"ok": True}
+
+
+@app.get("/api/me")
+def me(authorization: str = Header(default="")):
+    return _current_user(authorization)
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, authorization: str = Header(default="")):
     text = (req.text or "").strip()
     if not text:
         raise HTTPException(400, "text is required")
-    sid = req.session_id or "demo"
-    reply = await _run_agent(sid, text, req.lang)
+    user = _current_user(authorization)
+    reply = await _run_agent(user["id"], text, req.lang)
     audio_url = ""
     try:
         audio_path = await tts.synthesize(reply, req.lang)
         audio_url = f"/static/tts/{os.path.basename(audio_path)}"
     except tts.TTSUnavailable:
         pass
-    return ChatResponse(session_id=sid, user_text=text, reply=reply, audio_url=audio_url)
+    return ChatResponse(user_text=text, reply=reply, audio_url=audio_url)
+
+
+@app.get("/api/applications")
+def applications(authorization: str = Header(default="")):
+    user = _current_user(authorization)
+    return {"applications": db.list_applications(user["id"])}
 
 
 async def _run_agent(sid: str, text: str, lang: str = "ml") -> str:
@@ -83,7 +124,8 @@ async def _run_agent(sid: str, text: str, lang: str = "ml") -> str:
 
 
 @app.post("/api/asr")
-async def asr_upload(file: UploadFile = File(...)):
+async def asr_upload(file: UploadFile = File(...), authorization: str = Header(default="")):
+    _current_user(authorization)
     content = await file.read()
     if not content:
         raise HTTPException(400, "empty audio")

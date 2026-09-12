@@ -1,3 +1,4 @@
+import inspect
 import json
 
 from . import config, db, kb
@@ -62,18 +63,33 @@ def run_form_wizard(service_id: str, answers, ctx) -> dict:
     sid = ctx["session_id"]
     state = _WIZARDS.get(sid)
     if not state or state["service_id"] != service_id:
-        state = {"service_id": service_id, "collected": {}}
+        state = {"service_id": service_id, "collected": {}, "waiting": None}
         _WIZARDS[sid] = state
 
     collected = state["collected"]
-    for k, v in _flatten({}, answers).items():
-        collected[k] = v
+    flat = _flatten({}, answers)
+
+    fields = kb.get_service(service_id).get("form_fields", []) if kb.get_service(service_id) else []
+    pending = {f["field"] for f in fields if not collected.get(f["field"])}
+    known = {f["field"] for f in fields}
+
+    # If the caller gave no recognized field value (e.g. bare text), attach it to
+    # the field we last asked for — this keeps the wizard moving even when the
+    # LLM forgets to include the field key.
+    if flat:
+        gave_known = {k: v for k, v in flat.items() if k in known}
+        if gave_known:
+            collected.update(gave_known)
+        else:
+            raw = flat.get("answer") or next(iter(flat.values()), None)
+            target = state.get("waiting") or (missing[0]["field"] if (missing := [f for f in fields if not collected.get(f["field"])]) else None)
+            if raw is not None and str(raw).strip() and target:
+                collected[target] = str(raw).strip()
 
     service = kb.get_service(service_id)
     if not service:
         return {"error": f"unknown service_id: {service_id}"}
 
-    fields = service.get("form_fields", [])
     missing = [f for f in fields if not collected.get(f["field"])]
     filled = [f for f in fields if collected.get(f["field"])]
     progress = {
@@ -87,17 +103,50 @@ def run_form_wizard(service_id: str, answers, ctx) -> dict:
     }
     if missing:
         nxt = missing[0]
+        state["waiting"] = nxt["field"]
         progress["current_field"] = nxt["field"]
         progress["current_field_label_ml"] = nxt.get("label_ml")
         progress["current_field_label_en"] = nxt.get("label_en")
         progress["done"] = False
         return progress
 
+    state["waiting"] = None
     progress["done"] = True
     progress["payload"] = {f["field"]: collected.get(f["field"]) for f in fields}
     progress["next_steps_ml"] = service.get("steps", [])
     progress["portal"] = service.get("portal")
     return progress
+
+
+def answer_waiting_field(session_id: str, text: str) -> str | None:
+    """Server-side autofill: record the user's reply as the answer to a form field.
+    Returns the field name it filled, or None."""
+    state = _WIZARDS.get(session_id)
+    if not state or not state.get("waiting"):
+        return None
+    text = (text or "").strip()
+    if not text or len(text) > 200:
+        return None
+
+    fields = kb.get_service(state["service_id"]).get("form_fields", []) if kb.get_service(state["service_id"]) else []
+    waiting = state["waiting"]
+    pending = [f for f in fields if not state["collected"].get(f["field"])]
+    target = waiting
+
+    flat = text.replace(" ", "").replace("-", "").replace(".", "")
+    if flat.isdigit():
+        if len(flat) == 12 and any(f["field"] == "aadhaar" for f in pending):
+            target = "aadhaar"
+        elif len(flat) == 10 and any(f["field"] == "phone" for f in pending):
+            target = "phone"
+        elif any(f["field"] == waiting and f.get("type") == "number" for f in fields):
+            target = waiting
+        elif any(f.get("type") == "number" for f in pending):
+            target = next(f["field"] for f in pending if f.get("type") == "number")
+
+    state["collected"][target] = text
+    state["waiting"] = None
+    return target
 
 
 def track_complaint(complaint_id: str, ctx) -> dict:
@@ -261,10 +310,23 @@ def run_tool(name: str, arguments: str, ctx: dict):
         args = {}
     if not isinstance(args, dict):
         args = {"value": args}
+
+    params = inspect.signature(handler).parameters
+    kwargs = {}
+    for key, val in args.items():
+        if key in params:
+            kwargs[key] = val
+    if "_args" in params:
+        kwargs["_args"] = args
+    if "ctx" in params:
+        kwargs["ctx"] = ctx
+
     try:
-        return handler(**args, ctx=ctx)
-    except TypeError:
-        return handler(args, ctx)
+        return handler(**kwargs)
+    except TypeError as e:
+        return {"error": f"tool {name} invoked with wrong arguments: {e}"}
+    except Exception as e:  # a tool bug must never kill the whole reply
+        return {"error": f"tool {name} failed: {e}"}
 
 
 _register(

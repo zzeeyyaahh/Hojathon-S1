@@ -185,3 +185,19 @@ main { flex: 1; display: flex; flex-direction: column; padding: 12px 14px; }
 @media (max-width: 420px) {
   .bubble { max-width: 92%; }
 }
+
+.auth-gate {
+  position: fixed; inset: 0; z-index: 10; background: rgba(8, 61, 51, .8);
+  display: grid; place-items: center; padding: 20px;
+}
+.auth-card { max-width: 410px; background: #fff; border-radius: 20px; padding: 28px; box-shadow: 0 16px 48px rgba(0,0,0,.28); }
+.auth-logo { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--primary); font-weight: 800; margin-bottom: 14px; }
+.auth-card h2 { font-size: 1.3rem; margin-bottom: 8px; }
+.auth-card p { line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+.auth-card input { width: 100%; padding: 12px; border: 1px solid #c9d4d0; border-radius: 10px; margin: 5px 0; font: inherit; }
+.auth-actions { display: flex; gap: 8px; margin: 13px 0 6px; }
+.auth-actions button { border: none; padding: 11px 13px; border-radius: 10px; font: inherit; cursor: pointer; }
+.auth-primary { background: var(--primary); color: #fff; }.auth-secondary { background: #e4ece9; color: var(--primary-dark); }
+.auth-error { min-height: 1.2em; color: #a13b28 !important; font-size: .88rem; }
+.auth-card small { display: block; color: var(--muted); line-height: 1.35; }
+.logout { margin-left: auto; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.65); border-radius: 8px; padding: 6px 8px; cursor: pointer; font-size: .75rem; }

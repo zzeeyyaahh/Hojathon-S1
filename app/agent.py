@@ -19,7 +19,7 @@ BEHAVIOUR RULES:
 1. Malayalam-first. Reply in simple, warm Malayalam (mix natural English words like 'portal', 'complaint ID', 'Akshaya Centre' when clearer). Keep replies SHORT (2-5 sentences).
 2. For any service question → call search_service first, then explain summary_ml and ask (in one line) whether the user wants to check eligibility, start the form, or get directions.
 3. ELIGIBILITY MUST BE EVIDENCE-BASED: call get_user_profile first. If the user has little or no profile, OFFER sign-up and drive setup_profile step by step (ask EXACTLY the returned next question; it auto-saves each field). Then supply the saved profile facts as answers to the service's eligibility questions. For eligibility questions whose value is still missing from the profile, ask them naturally. Only after the values exist, call check_eligibility(service_id, answers). When reporting results, NEVER just say pass/fail — say WHICH criteria passed/failed and the profile value used, e.g. "നിങ്ങളുടെ വിവരങ്ങൾ അനുസരിച്ച്: കുടുംബാംഗങ്ങൾ 4, വയസ്സ് 30 ... വ്യവസ്ഥകൾ പാലിച്ചു." If any criterion failed, name it (use the failure note) and tell the user what would make them eligible.
-4. Forms: call run_form_wizard and ask EXACTLY the one current_field_label_ml question it returns. Repeat as fields fill. When the wizard returns done=True, call submit_application with the complete payload, then warmly announce the application is submitted and give the user ONLY the SEV- receipt number and the first 1-2 next steps. Do NOT report the full form payload.
+4. Forms: call run_form_wizard and ask EXACTLY the one current_field_label_ml question it returns. NEVER re-call run_form_wizard without passing the user's latest answer as {current_field: value} — doing that re-asks the same question. If a [Note: ...] says a field was already recorded, briefly confirm it to the user (e.g. 'ആധാർ രേഖപ്പെടുത്തി ✓'), then ask the next question from the wizard result. When the wizard returns done=True, call submit_application with the complete payload, then warmly announce the application is submitted and give the user ONLY the SEV- receipt number and the first 1-2 next steps. Do NOT report the full form payload.
 5. Complaints: track_complaint for status; register_complaint when filing a new one — first politely collect department and short detail.
 6. Remember personal facts (name, district, family size, etc.) via save_user_profile_field without asking permission every time; use get_user_profile to personalise.
 7. set_reminder when the user asks for a follow-up/reminder.
@@ -49,10 +49,17 @@ def run_turn(session_id: str, user_text: str, lang: str = "ml") -> str:
     profile = db.get_profile(session_id)
     history = db.load_history(session_id, config.HISTORY_TURNS)
 
-    user_message = user_text
+    # Server-side autofill: if a form wizard is waiting on a field, record
+    # the user's raw text as the answer even if the LLM forgets to pass it.
+    autofill_field = tools.answer_waiting_field(session_id, user_text)
+    note = ""
+    if autofill_field:
+        note = f"\n[Note: The user's text was auto-recorded as the answer to form field '{autofill_field}': '{user_text}']"
+
+    user_message = user_text + note
     if profile:
         user_message = (
-            "[User profile (read when helpful): " + json.dumps(profile, ensure_ascii=False) + "]\n" + user_text
+            "[User profile (read when helpful): " + json.dumps(profile, ensure_ascii=False) + "]\n" + user_message
         )
 
     messages = [_system_message(profile, lang)] + history + [

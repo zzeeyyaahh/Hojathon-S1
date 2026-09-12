@@ -82,8 +82,9 @@ assert r["saved"], r
 r = tool("get_user_profile", {})
 assert r["profile"].get("district") == "Ernakulam", r
 
-# Profile sign-up wizard (fresh session, DB is persistent)
-ctx2 = {"session_id": "t2"}
+# Profile sign-up wizard (fresh session each run — DB is persistent)
+import time as _t
+ctx2 = {"session_id": "signtest-" + str(int(_t.time()))}
 
 def tool2(name, args):
     return tools.run_tool(name, json.dumps(args, ensure_ascii=False), ctx2)
@@ -97,5 +98,22 @@ assert r["done"] is True and r["profile"]["name"] == "Anu", r
 
 r = tool2("get_user_profile", {})
 assert r["profile"]["occupation"] == "teacher" and r["profile"]["family_size"] == "4", r
+
+# Form wizard autofill: bare answer goes to the waiting field
+ctx3 = {"session_id": "t3"}
+
+def tool3(name, args):
+    return tools.run_tool(name, json.dumps(args, ensure_ascii=False), ctx3)
+
+r = tool3("run_form_wizard", {"service_id": "income_certificate", "answers": {}})
+assert r["current_field"] == "applicant_name", r
+
+assert tools.answer_waiting_field("t3", "Ravi") == "applicant_name"
+r = tool3("run_form_wizard", {"service_id": "income_certificate", "answers": {}})
+assert r["current_field"] == "aadhaar", r
+
+assert tools.answer_waiting_field("t3", "425202563925") == "aadhaar"
+r = tool3("run_form_wizard", {"service_id": "income_certificate", "answers": {"address": "Kochi"}})
+assert r["current_field"] == "annual_income", r
 
 print("ALL TOOL TESTS PASSED")
