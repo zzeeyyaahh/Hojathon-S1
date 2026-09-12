@@ -127,6 +127,51 @@ def register_complaint(detail: str, department: str = "", ctx: dict | None = Non
     }
 
 
+def submit_application(service_id: str, answers, ctx) -> dict:
+    service = kb.get_service(service_id or "")
+    if not service:
+        return {"error": f"unknown service_id: {service_id}"}
+    payload = _flatten(service, answers)
+    fields = service.get("form_fields", [])
+    missing = [f for f in fields if not payload.get(f["field"])]
+    if missing:
+        labels = "; ".join(f.get("label_ml") or f["field"] for f in missing)
+        return {
+            "submitted": False,
+            "missing_fields_ml": labels,
+            "message_ml": "കുറച്ച് വിവരങ്ങൾ കൂടി ആവശ്യമാണ്. ഫോം വിസാർഡ് തുടരുക.",
+        }
+    app_no = db.create_application(ctx["session_id"], service_id, payload)
+    return {
+        "submitted": True,
+        "application_no": app_no,
+        "service_name_ml": service.get("name_ml"),
+        "status": "Submitted",
+        "submitted_at": None,
+        "payload": payload,
+        "next_steps_ml": service.get("steps", []),
+        "portal": service.get("portal"),
+        "center": {"name_ml": kb.center_info(service.get("center", "online")).get("name_ml", "")},
+        "message_ml": f"അപേക്ഷ വിജയകരമായി സമർപ്പിച്ചു! രസീത് നമ്പർ: {app_no}",
+    }
+
+
+def track_application(application_no: str, ctx) -> dict:
+    row = db.get_application(application_no or "")
+    if not row:
+        return {
+            "found": False,
+            "message_ml": "ആ അപേക്ഷ നമ്പർ കണ്ടെത്താനായില്ല. ഒരിക്കൽ കൂടി പരിശോധിക്കാമോ?",
+        }
+    return {
+        "found": True,
+        "application_no": row["id"],
+        "service_id": row["service_id"],
+        "status": row["status"],
+        "submitted_at": row["submitted_at"],
+    }
+
+
 def route_to_department(service_id: str, ctx) -> dict:
     service = kb.get_service(service_id or "")
     if not service:
@@ -167,6 +212,8 @@ TOOL_HANDLERS = {
     "run_form_wizard": run_form_wizard,
     "track_complaint": track_complaint,
     "register_complaint": register_complaint,
+    "submit_application": submit_application,
+    "track_application": track_application,
     "route_to_department": route_to_department,
     "save_user_profile_field": save_profile,
     "get_user_profile": get_user_profile,
@@ -252,6 +299,29 @@ _register(
             "department": {"type": "string", "description": "Department to complain about"},
         },
         "required": ["detail"],
+    },
+)
+
+_register(
+    name="submit_application",
+    description="SUBMIT a completed application for a service. Call this right after run_form_wizard reports done=True, passing the full collected payload. Returns a receipt number (SEV-...) the citizen can quote anywhere.",
+    parameters={
+        "type": "object",
+        "properties": {
+            "service_id": {"type": "string"},
+            "answers": {"type": "object", "description": "the complete field -> value payload collected by the wizard"},
+        },
+        "required": ["service_id", "answers"],
+    },
+)
+
+_register(
+    name="track_application",
+    description="Check the live status of a submitted application by its receipt number (SEV-...).",
+    parameters={
+        "type": "object",
+        "properties": {"application_no": {"type": "string"}},
+        "required": ["application_no"],
     },
 )
 

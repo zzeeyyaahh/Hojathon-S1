@@ -38,6 +38,25 @@ assert r["found"] and r["status"] == "Under investigation", r
 r = tool("route_to_department", {"service_id": "welfare_pension"})
 assert r["department"] and r["center_name_ml"], r
 
+r = tool(
+    "submit_application",
+    {"service_id": "income_certificate",
+     "answers": {"applicant_name": "Arjun", "aadhaar": "123456789012",
+                 "address": "Kakkanad, Ernakulam", "annual_income": "250000",
+                 "purpose": "Scholarship"}},
+)
+assert r["submitted"] and r["application_no"].startswith("SEV-"), r
+app_no = r["application_no"]
+
+r = tool("submit_application", {"service_id": "income_certificate", "answers": {"applicant_name": "Arjun"}})
+assert r["submitted"] is False and r["missing_fields_ml"], r
+
+r = tool("track_application", {"application_no": app_no})
+assert r["found"] and r["status"] == "Submitted", r
+
+r = tool("track_application", {"application_no": "SEV-0000-0000"})
+assert r["found"] is False, r
+
 r = tool("run_form_wizard", {"service_id": "income_certificate", "answers": {"applicant_name": "Arjun"}})
 assert r["current_field"] == "aadhaar" and r["done"] is False, r
 

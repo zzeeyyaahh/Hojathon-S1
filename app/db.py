@@ -60,6 +60,15 @@ def init_db():
                 remind_date TEXT,
                 created_at TEXT)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS applications(
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                service_id TEXT,
+                payload TEXT,
+                status TEXT,
+                submitted_at TEXT)"""
+        )
     _seed_complaints()
 
 
@@ -90,6 +99,30 @@ def register_complaint(detail: str, department: str = ""):
             (cid, "Registered", now, department, detail, ""),
         )
     return cid
+
+
+def create_application(session_id: str, service_id: str, payload: dict, status: str = "Submitted"):
+    import json as _json
+
+    app_no = "SEV-" + datetime.now().strftime("%Y%m%d") + "-" + str(uuid.uuid4().int % 9999 + 1000)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    with _connect() as c:
+        c.execute(
+            "INSERT INTO applications(id, session_id, service_id, payload, status, submitted_at) VALUES (?,?,?,?,?,?)",
+            (app_no, session_id, service_id, _json.dumps(payload, ensure_ascii=False), status, now),
+        )
+    return app_no
+
+
+def get_application(app_no: str):
+    with _connect() as c:
+        row = c.execute(
+            "SELECT * FROM applications WHERE LOWER(id)=LOWER(?)", (app_no,)
+        ).fetchone()
+    if row is None:
+        return None
+    item = dict(row)
+    return item
 
 
 def get_profile(session_id: str) -> dict:
