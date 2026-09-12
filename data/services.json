@@ -1,0 +1,318 @@
+{
+  "service_center": {
+    "aksaya": {
+      "name_ml": "അക്ഷയ കേന്ദ്രം",
+      "name_en": "Akshaya e-Services Centre",
+      "note_ml": "ജില്ലയിലുള്ള ഏത് അക്ഷയ കേന്ദ്രത്തിലും ഈ സേവനത്തിന് അപേക്ഷിക്കാം",
+      "note_en": "Available at any Akshaya centre in your district"
+    },
+    "sevakendram": {
+      "name_ml": "സേവന കേന്ദ്രം / താലൂക്ക് ഓഫീസ്",
+      "name_en": "Seva Kendram / Taluk office",
+      "note_ml": "നിങ്ങളുടെ താലൂക്ക് ഓഫീസിലോ സേവനകേന്ദ്രത്തിലോ അപേക്ഷിക്കാം",
+      "note_en": "Apply at your taluk office or Seva Kendram"
+    },
+    "online": {
+      "name_ml": "ഓൺലൈൻ പോർട്ടൽ",
+      "name_en": "Online portal",
+      "note_ml": "പോർട്ടലിലൂടെ ഓൺലൈനായി അപേക്ഷിക്കാം",
+      "note_en": "Apply online via the portal"
+    }
+  },
+  "services": [
+    {
+      "id": "ration_card",
+      "name_ml": "റേഷൻ കാർഡ്",
+      "name_en": "Ration Card (PDS)",
+      "department": "Department of Civil Supplies",
+      "portal": "https://supplies.kerala.gov.in",
+      "aliases": ["ration", "rashi kard", "pds", "ഭക്ഷ്യസുരക്ഷ", "ration card"],
+      "summary_ml": "അർഹരായ കുടുംബങ്ങൾക്ക് സബ്സിഡി നിരക്കിൽ ഭക്ഷ്യധാന്യങ്ങൾ ലഭിക്കാനുള്ള കാർഡ്. പുതിയ കാർഡ്, വിഭജനം, പേര് മാറ്റം എന്നിവയ്ക്ക് അപേക്ഷിക്കാം.",
+      "summary_en": "Family card for subsidized food grains. You can apply for a new card, division, or name change.",
+      "eligibility": [
+        {
+          "field": "family_size",
+          "question_ml": "കുടുംബത്തിലെ അംഗങ്ങളുടെ എണ്ണം എത്രയാണ്?",
+          "question_en": "How many members in your family?",
+          "type": "number",
+          "rule": {"op": "gte", "args": ["family_size", 1]}
+        },
+        {
+          "field": "already_has_card",
+          "question_ml": "നിങ്ങളുടെ കുടുംബത്തിന് നിലവിൽ റേഷൻ കാർഡ് ഉണ്ടോ?",
+          "question_en": "Does your family already have a ration card?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["already_has_card", false]}
+        },
+        {
+          "field": "family_survey_state",
+          "question_ml": "കുടുംബ സർവേ (ഭക്ഷ്യസുരക്ഷാ സർവേ) നടന്നിട്ടുണ്ടോ?",
+          "question_en": "Has the family survey (food security survey) happened?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["family_survey_state", true]}
+        }
+      ],
+      "documents": ["കുടുംബനാഥന്റെ ആധാർ", "വിലാസ തെളിവ്", "വരുമാന സർട്ടിഫിക്കറ്റ്", "കുടുംബ മെമ്പർഷിപ്പ് സർട്ടിഫിക്കറ്റ്"],
+      "documents_en": ["Aadhaar of family head", "Address proof", "Income certificate", "Family membership certificate"],
+      "steps": [
+        "അക്ഷയ കേന്ദ്രത്തിൽ നിന്ന് e-Services ID സൃഷ്ടിക്കുക",
+        "സേവന പോർട്ടലിൽ വിവരങ്ങൾ ശരിയായി പൂരിപ്പിച്ച് അപേക്ഷിക്കുക",
+        "സപ്ലൈ ഇൻസ്പെക്ടറുടെ വീട്ടുപരിശോധന",
+        "അംഗീകാരത്തിന് ശേഷം കാർഡ് ലഭിക്കും"
+      ],
+      "form_fields": [
+        {"field": "applicant_name", "label_ml": "അപേക്ഷകന്റെ പേര്", "label_en": "Applicant name"},
+        {"field": "aadhaar", "label_ml": "ആധാർ നമ്പർ", "label_en": "Aadhaar number"},
+        {"field": "address", "label_ml": "വിലാസം", "label_en": "Address"},
+        {"field": "family_size", "label_ml": "കുടുംബാംഗങ്ങളുടെ എണ്ണം", "label_en": "Family size"},
+        {"field": "district", "label_ml": "ജില്ല", "label_en": "District"},
+        {"field": "income_slab", "label_ml": "വാർഷിക വരുമാനം", "label_en": "Annual income"}
+      ],
+      "center": "aksaya"
+    },
+    {
+      "id": "birth_certificate",
+      "name_ml": "ജനന സർട്ടിഫിക്കറ്റ്",
+      "name_en": "Birth Certificate",
+      "department": "Civil Registration (LSGD / e-District)",
+      "portal": "https://edistrict.kerala.gov.in",
+      "aliases": ["birth", "ജനനം", "birth cert", "ജനന സർട്ടി"],
+      "summary_ml": "ജനനം രജിസ്റ്റർ ചെയ്യാനും സർട്ടിഫിക്കറ്റ് ലഭിക്കാനുള്ള സേവനം. ജനനം കഴിഞ്ഞ് 21 ദിവസത്തിനുള്ളിൽ രജിസ്റ്റർ ചെയ്താൽ സൗജന്യമാണ്.",
+      "summary_en": "Register births and get certificates. Free if registered within 21 days of birth.",
+      "eligibility": [
+        {
+          "field": "registered_within_21",
+          "question_ml": "ജനനം നടന്ന് 21 ദിവസം കഴിഞ്ഞോ?",
+          "question_en": "Has it been more than 21 days since the birth?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["registered_within_21", false]},
+          "failure_note_ml": "21 ദിവസത്തിന് ശേഷം രജിസ്റ്റർ ചെയ്താൽ കാലതാമസ ഫീസ് ഉണ്ടാകും",
+          "failure_note_en": "Late registration attracts a fee"
+        }
+      ],
+      "documents": ["ആശുപത്രി ജനന രജിസ്റ്റർ തെളിവ് / ഹോസ്പിറ്റൽ സർട്ടിഫിക്കറ്റ്", "മാതാപിതാക്കളുടെ ആധാർ", "വിലാസ തെളിവ്"],
+      "documents_en": ["Hospital birth register proof", "Parents' Aadhaar", "Address proof"],
+      "steps": [
+        "ജനനം നടന്ന ആശുപത്രിയിൽ / സ്ഥലത്ത് രജിസ്ട്രാർ ഓഫീസിൽ രജിസ്റ്റർ ചെയ്യുക",
+        "ഫീസ് അടച്ച ശേഷം സർട്ടിഫിക്കറ്റ് ഇ-ഡിസ്ട്രിക്ട് വഴി ഡൗൺലോഡ് ചെയ്യുക",
+        "പിഴവുണ്ടെങ്കിൽ രജിസ്ട്രാർ ഓഫീസിൽ നിന്ന് തിരുത്തൽ"
+      ],
+      "form_fields": [
+        {"field": "child_name", "label_ml": "കുട്ടിയുടെ പേര്", "label_en": "Child name"},
+        {"field": "birth_date", "label_ml": "ജനന തീയതി", "label_en": "Date of birth"},
+        {"field": "hospital", "label_ml": "ജനിച്ച ആശുപത്രി", "label_en": "Hospital"},
+        {"field": "father_name", "label_ml": "പിതാവിന്റെ പേര്", "label_en": "Father's name"},
+        {"field": "mother_name", "label_ml": "മാതാവിന്റെ പേര്", "label_en": "Mother's name"}
+      ],
+      "center": "online"
+    },
+    {
+      "id": "income_certificate",
+      "name_ml": "വരുമാന സർട്ടിഫിക്കറ്റ്",
+      "name_en": "Income Certificate",
+      "department": "Revenue Department (Taluk)",
+      "portal": "https://edistrict.kerala.gov.in",
+      "aliases": ["income", "വരുമാനം", "income cert", "income certificate"],
+      "summary_ml": "സ്കോളർഷിപ്പ്, സാമൂഹ്യക്ഷേമ പദ്ധതികൾ, ജോലി ആവശ്യങ്ങൾ എന്നിവയ്ക്ക് വരുമാന സർട്ടിഫിക്കറ്റ് ആവശ്യമാണ്. താലൂക്ക് ഓഫീസ് വഴി ലഭിക്കും.",
+      "summary_en": "Required for scholarships, welfare schemes, and jobs. Issued by the taluk office.",
+      "eligibility": [
+        {
+          "field": "annual_income",
+          "question_ml": "വാർഷിക കുടുംബ വരുമാനം എത്രയാണ്?",
+          "question_en": "What is the annual family income?",
+          "type": "number",
+          "rule": {"op": "lte", "args": ["annual_income", 1000000]},
+          "failure_note_ml": "ചില പദ്ധതികൾക്ക് മാത്രമേ ഈ സർട്ടിഫിക്കറ്റ് ആവശ്യമുള്ളൂ",
+          "failure_note_en": "Certificate may not be needed for your case"
+        }
+      ],
+      "documents": ["ആധാർ", "കുടുംബ സർവേ രശീതി / തരണം", "മുന് വരുമാന സർട്ടിഫിക്കറ്റ് (ഉണ്ടെങ്കിൽ)"],
+      "documents_en": ["Aadhaar", "Family survey receipt", "Previous income certificate (if any)"],
+      "steps": [
+        "ഇ-ഡിസ്ട്രിക്ട് പോർട്ടലിൽ അപേക്ഷിക്കുക",
+        "വില്ലേജ് ഓഫീസർ പരിശോധന",
+        "താലൂക്ക് ഓഫീസിൽ നിന്ന് സർട്ടിഫിക്കറ്റ് ലഭിക്കും"
+      ],
+      "form_fields": [
+        {"field": "applicant_name", "label_ml": "പേര്", "label_en": "Name"},
+        {"field": "aadhaar", "label_ml": "ആധാർ നമ്പർ", "label_en": "Aadhaar"},
+        {"field": "address", "label_ml": "വിലാസം", "label_en": "Address"},
+        {"field": "annual_income", "label_ml": "വാർഷിക വരുമാനം", "label_en": "Annual income"},
+        {"field": "purpose", "label_ml": "ആവശ്യം", "label_en": "Purpose"}
+      ],
+      "center": "sevakendram"
+    },
+    {
+      "id": "welfare_pension",
+      "name_ml": "സാമൂഹ്യക്ഷേമ പെൻഷൻ",
+      "name_en": "Social Welfare Pension",
+      "department": "Department of Social Justice",
+      "portal": "https://sp.kerala.gov.in",
+      "aliases": ["pension", "പെൻഷൻ", "old age pension", "widow pension", "ക്ഷേമ പെൻഷൻ"],
+      "summary_ml": "പ്രായമായവർ, വിധവകൾ, അഗതികൾ, ഗർഭിണികൾ തുടങ്ങിയവർക്കുള്ള പ്രതിമാസ പെൻഷൻ പദ്ധതികൾ.",
+      "summary_en": "Monthly pension schemes for elderly, widows, destitutes, and pregnant women.",
+      "eligibility": [
+        {
+          "field": "age",
+          "question_ml": "നിങ്ങളുടെ വയസ്സ് എത്രയാണ്?",
+          "question_en": "What is your age?",
+          "type": "number",
+          "rule": {"op": "gte", "args": ["age", 65]},
+          "failure_note_ml": "65 വയസ്സിൽ താഴെയുള്ളവർക്ക് വയോജന പെൻഷൻ ബാധകമല്ല. വിധവാ പെൻഷൻ പോലുള്ള മറ്റ് പദ്ധതികൾ പരിശോധിക്കാം.",
+          "failure_note_en": "Below 65, old-age pension doesn't apply. Other schemes like widow pension may."
+        }
+      ],
+      "documents": ["ആധാർ", "ബാങ്ക് അക്കൗണ്ട് വിവരം", "വരുമാന സർട്ടിഫിക്കറ്റ്", "പ്രായം തെളിയിക്കുന്ന രേഖ"],
+      "documents_en": ["Aadhaar", "Bank account details", "Income certificate", "Age proof"],
+      "steps": [
+        "തദ്ദേശ സ്വയംഭരണ സ്ഥാപനത്തിൽ / അക്ഷയ കേന്ദ്രത്തിൽ അപേക്ഷ",
+        "കുടുംബശ്രീ / ക്ഷേമ ഓഫീസർ പരിശോധന",
+        "അംഗീകാരത്തിന് ശേഷം പ്രതിമാസ പെൻഷൻ ബാങ്ക് അക്കൗണ്ടിൽ",
+        "ഓരോ വർഷവും ജീവൻ തെളിവ് നൽകണം"
+      ],
+      "form_fields": [
+        {"field": "applicant_name", "label_ml": "പേര്", "label_en": "Name"},
+        {"field": "age", "label_ml": "വയസ്സ്", "label_en": "Age"},
+        {"field": "aadhaar", "label_ml": "ആധാർ", "label_en": "Aadhaar"},
+        {"field": "pension_type", "label_ml": "പെൻഷൻ തരം", "label_en": "Pension type"},
+        {"field": "bank_account", "label_ml": "ബാങ്ക് അക്കൗണ്ട്", "label_en": "Bank account"}
+      ],
+      "center": "sevakendram"
+    },
+    {
+      "id": "ssp_scholarship",
+      "name_ml": "എസ്.എസ്.പി. സ്കോളർഷിപ്പ്",
+      "name_en": "SSP Higher Education Scholarship",
+      "department": "Directorate of Higher Secondary Education",
+      "portal": "https://ssp.dge.kerala.gov.in",
+      "aliases": ["scholarship", "സ്കോളർഷിപ്പ്", "ssp", "സുവിനീർ", "higher education scholarship"],
+      "summary_ml": "ഉന്നതവിദ്യാഭ്യാസത്തിനുള്ള സംസ്ഥാന സ്കോളർഷിപ്പ് പദ്ധതി. കുടുംബ വരുമാനം കണക്കാക്കി യോഗ്യത നിർണ്ണയിക്കുന്നു.",
+      "summary_en": "State scholarship scheme for higher education. Eligibility depends on family income.",
+      "eligibility": [
+        {
+          "field": "student_income",
+          "question_ml": "കുടുംബത്തിന്റെ വാർഷിക വരുമാനം എത്രയാണ്? (രൂപ)",
+          "question_en": "Annual family income? (₹)",
+          "type": "number",
+          "rule": {"op": "lte", "args": ["student_income", 1000000]},
+          "failure_note_ml": "വരുമാന പരിധി കവിഞ്ഞാൽ എസ്.എസ്.പി. യോഗ്യതയില്ല",
+          "failure_note_en": "Income above limit - not eligible for SSP"
+        }
+      ],
+      "documents": ["ആധാർ", "വരുമാന സർട്ടിഫിക്കറ്റ്", "മുൻവർഷ മാർക്ക് ലിസ്റ്റ്", "ബാങ്ക് / പോസ്റ്റ് ഓഫീസ് വിവരം"],
+      "documents_en": ["Aadhaar", "Income certificate", "Previous year marks list", "Bank/post office details"],
+      "steps": [
+        "സന്നദ്ധരായ വിദ്യാര്ഥി സുവിനീർ പോർട്ടലിൽ രജിസ്റ്റർ ചെയ്യുക",
+        "കുടുംബ വിവര പട്ടിക പൂരിപ്പിക്കുക",
+        "ഓൺലൈൻ ആയി സമർപ്പിക്കുക",
+        "സ്കൂൾ / വിദ്യാഭ്യാസ ഓഫീസ് പരിശോധനയ്ക്ക് ശേഷം തുക അക്കൗണ്ടിൽ"
+      ],
+      "form_fields": [
+        {"field": "student_name", "label_ml": "വിദ്യാർത്ഥിയുടെ പേര്", "label_en": "Student name"},
+        {"field": "suvinir_id", "label_ml": "സുവിനീർ ഐഡി", "label_en": "Suvinir ID"},
+        {"field": "class_course", "label_ml": "ക്ലാസ് / കോഴ്സ്", "label_en": "Class / course"},
+        {"field": "student_income", "label_ml": "കുടുംബ വരുമാനം", "label_en": "Family income"},
+        {"field": "aadhaar", "label_ml": "ആധാർ", "label_en": "Aadhaar"}
+      ],
+      "center": "online"
+    },
+    {
+      "id": "aadhaar_update",
+      "name_ml": "ആധാർ അപ്ഡേറ്റ്",
+      "name_en": "Aadhaar Update",
+      "department": "UIDAI",
+      "portal": "https://myaadhaar.uidai.gov.in",
+      "aliases": ["aadhaar", "ആധാർ", "aadhaar update", "uidai", "name change aadhaar"],
+      "summary_ml": "ആധാറിലെ പേര്, വിലാസം, ജനനതീയതി തുടങ്ങിയവ അപ്ഡേറ്റ് ചെയ്യാനുള്ള സേവനം.",
+      "summary_en": "Update name, address, date of birth on Aadhaar.",
+      "eligibility": [
+        {
+          "field": "has_aadhaar",
+          "question_ml": "നിങ്ങൾക്ക് ആധാർ കാർഡ് ഉണ്ടോ?",
+          "question_en": "Do you have an Aadhaar card?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["has_aadhaar", true]}
+        }
+      ],
+      "documents": ["ആധാർ നമ്പർ", "അപ്ഡേറ്റ് ചെയ്യാനുള്ള വിവരത്തിന്റെ തെളിവ്"],
+      "documents_en": ["Aadhaar number", "Proof of the info to update"],
+      "steps": [
+        "myAadhaar പോർട്ടലിൽ ലോഗിൻ ചെയ്ത് ഡെമോഗ്രാഫിക് ഡാറ്റ അപ്ഡേറ്റ് തിരഞ്ഞെടുക്കുക",
+        "നിയമപരമായി സാധുവായ രേഖകൾ അപ്ലോഡ് ചെയ്യുക",
+        "ഫീസ് അടച്ച് സമർപ്പിക്കുക",
+        "OTP പരിശോധനയ്ക്ക് ശേഷം 90+ ദിവസത്തിനുള്ളിൽ അപ്ഡേറ്റ്"
+      ],
+      "form_fields": [
+        {"field": "aadhaar", "label_ml": "ആധാർ നമ്പർ", "label_en": "Aadhaar number"},
+        {"field": "update_type", "label_ml": "അപ്ഡേറ്റ് തരം", "label_en": "Update type"},
+        {"field": "new_value", "label_ml": "പുതിയ വിവരം", "label_en": "New value"}
+      ],
+      "center": "online"
+    },
+    {
+      "id": "complaint_tracking",
+      "name_ml": "പരാതി ട്രാക്കിംഗ്",
+      "name_en": "Complaint / Grievance Tracking",
+      "department": "e-District / CM Grievance Cell",
+      "portal": "https://edistrict.kerala.gov.in",
+      "aliases": ["complaint", "പരാതി", "grievance", "പരാതി എന്ത് നിലയിലാണ്", "track complaint"],
+      "summary_ml": "പൊതുസേവന കാര്യാലയങ്ങളിലെ പരാതികളുടെ നില ട്രാക്ക് ചെയ്യാം. പരാതി രജിസ്റ്റർ ചെയ്യാനും നില അറിയാനും സഹായിക്കുന്നു.",
+      "summary_en": "Track the status of complaints filed with public service offices.",
+      "eligibility": [
+        {
+          "field": "has_complaint_id",
+          "question_ml": "നിങ്ങളുടെ പരാതിയുടെ ഐഡി (receipt number) ഉണ്ടോ?",
+          "question_en": "Do you have the complaint/receipt ID?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["has_complaint_id", true]},
+          "failure_note_ml": "പരാതി ഐഡി ഇല്ലാതെ ട്രാക്ക് ചെയ്യാൻ കഴിയില്ല. ആദ്യം പരാതി രജിസ്റ്റർ ചെയ്യാം.",
+          "failure_note_en": "Cannot track without an ID. Let's register a new complaint."
+        }
+      ],
+      "documents": [],
+      "documents_en": [],
+      "steps": [
+        "പരാതി രജിസ്റ്റർ ചെയ്യുക (ഇ-ഡിസ്ട്രിക്ട് / ഗവർണൻസ് കേന്ദ്രം)",
+        "രസീത് നമ്പർ ലഭിക്കും",
+        "ഓൺലൈനിൽ സ്റ്റാറ്റസ് പരിശോധിക്കാം"
+      ],
+      "form_fields": [
+        {"field": "complaint_description", "label_ml": "പരാതിയുടെ വിവരണം", "label_en": "Complaint description"},
+        {"field": "department", "label_ml": "ബന്ധപ്പെട്ട വകുപ്പ്", "label_en": "Department"}
+      ],
+      "center": "online"
+    },
+    {
+      "id": "property_tax",
+      "name_ml": "പ്രോപ്പർട്ടി ടാക്സ്",
+      "name_en": "Property Tax",
+      "department": "Local Self Government (LSGD)",
+      "portal": "https://www.lsgkerala.gov.in",
+      "aliases": ["property tax", "ടാക്സ്", "ഭൂനികുതി", "property", "റോഡ് ടാക്സ്"],
+      "summary_ml": "വീട് / കെട്ടിടങ്ങളുടെ പ്രോപ്പർട്ടി ടാക്സ് അടയ്ക്കാനും കണക്കാക്കാനുമുള്ള സേവനം.",
+      "summary_en": "Calculate and pay property tax for buildings.",
+      "eligibility": [
+        {
+          "field": "owns_building",
+          "question_ml": "നിങ്ങളുടെ പേരിൽ കെട്ടിടം / വീടുണ്ടോ?",
+          "question_en": "Do you own a building/house?",
+          "type": "bool",
+          "rule": {"op": "eq", "args": ["owns_building", true]}
+        }
+      ],
+      "documents": ["ആധാർ", "കെട്ടിട നമ്പർ / തരണം"],
+      "documents_en": ["Aadhaar", "Building number / receipt"],
+      "steps": [
+        "തദ്ദേശസ്ഥാപന വെബ്സൈറ്റിൽ BuildTax / ഓൺലൈൻ ടാക്സ്",
+        "കെട്ടിട നമ്പർ ഉപയോഗിച്ച് തുക കണക്കാക്കുക",
+        "ഓൺലൈനായി അടയ്ക്കുക",
+        "രസീത് സംരക്ഷിക്കുക"
+      ],
+      "form_fields": [
+        {"field": "owner_name", "label_ml": "ഉടമയുടെ പേര്", "label_en": "Owner name"},
+        {"field": "building_no", "label_ml": "കെട്ടിട നമ്പർ", "label_en": "Building number"}
+      ],
+      "center": "online"
+    }
+  ]
+}
