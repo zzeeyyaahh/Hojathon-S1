@@ -52,10 +52,12 @@ class BrowserController:
         self._worker = _Worker()
         self._pw = None
         self._browser = None
+        self._ctx = None
         self._page = None
         self.url = ""
         self.title = ""
         self.last_status = "idle"
+        self.last_error = ""
 
     # ---- public API: safely routed to the owning worker thread ----
 
@@ -85,28 +87,61 @@ class BrowserController:
     def _ensure(self):
         if self._page is not None:
             return
-        self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(headless=False, args=["--start-maximized"])
-        ctx = self._browser.new_context(
-            viewport={"width": 1280, "height": 860},
-            user_agent=_UA,
-            locale="ml-IN",
-            timezone_id="Asia/Kolkata",
-        )
-        self._page = ctx.new_page()
+        # ONE playwright loop, ONE browser, ONE context live for the whole process.
+        # sync playwright cannot be restarted on the same thread and relaunching
+        # browsers on one dispatcher is flaky, so only pages are created/destroyed.
+        if self._pw is None:
+            self._pw = sync_playwright().start()
+        if self._browser is None:
+            try:
+                self._browser = self._pw.chromium.launch(
+                    headless=False,
+                    args=[
+                        "--start-maximized",
+                        "--disable-gpu",
+                        "--disable-dev-shm-usage",
+                        "--disable-extensions",
+                        "--disable-background-networking",
+                        "--no-default-browser-check",
+                    ],
+                )
+            except Exception as e:
+                self.last_error = str(e)
+                raise RuntimeError(f"chromium launch failed: {e}")
+        if self._ctx is None:
+            self._ctx = self._browser.new_context(
+                viewport={"width": 1280, "height": 860},
+                user_agent=_UA,
+                locale="ml-IN",
+                timezone_id="Asia/Kolkata",
+            )
+        if self._page is None:
+            self._page = self._ctx.new_page()
         self.last_status = "ready"
 
     def _open(self, url: str, timeout: int = 60000) -> dict:
+        self.last_error = ""
         self._ensure()
         url = (url or "").strip()
         if not url:
             return {"error": "no url provided"}
         if not url.startswith("http"):
             url = "https://" + url
+        # Fresh page per session: portals are cleaner without history state.
+        try:
+            self._page.close()
+        except Exception:
+            pass
+        try:
+            self._page = self._ctx.new_page()
+        except Exception as e:
+            self.last_error = str(e)
+            return {"error": f"could not create a page: {e}"}
         try:
             self._page.goto(url, timeout=timeout, wait_until="domcontentloaded")
             self._page.wait_for_timeout(2500)
         except Exception as e:
+            self.last_error = str(e)
             return {"error": f"could not open {url}: {e}"}
         self.url = self._page.url
         self.title = self._page.title()
@@ -164,6 +199,7 @@ class BrowserController:
         return None
 
     def _fill(self, hint: str, value: str) -> dict:
+        self.last_error = ""
         self._ensure()
         loc = self._locate_input(hint)
         if loc is None:
@@ -171,11 +207,13 @@ class BrowserController:
         try:
             loc.fill(str(value))
         except Exception as e:
+            self.last_error = str(e)
             return {"error": f"could not fill field: {e}", "available_fields": self._input_hints()[:15]}
         self.last_status = "filled"
         return {"filled": True, "field": hint}
 
     def _click(self, text: str) -> dict:
+        self.last_error = ""
         self._ensure()
         page = self._page
         text = (text or "").strip()
@@ -245,6 +283,8 @@ class BrowserController:
             "title": self.title,
             "status": self.last_status,
         }
+        if self.last_error:
+            d["error"] = self.last_error[:200]
         need = self._needs_user()
         if need:
             d["needs_user"] = need
@@ -252,16 +292,16 @@ class BrowserController:
 
     def _close(self):
         try:
-            if self._browser:
-                self._browser.close()
+            if self._page:
+                self._page.close()
         except Exception:
             pass
+        # The browser/context/loop stay alive and are reused; only the page ends.
         self._page = None
-        self._browser = None
-        self._pw = None
         self.url = ""
         self.title = ""
         self.last_status = "idle"
+        self.last_error = ""
 
 
 browser = BrowserController()
