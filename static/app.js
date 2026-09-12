@@ -170,6 +170,29 @@
     });
   });
 
+  // ---------------- Install as app (PWA) ----------------
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  }
+  var deferredInstall = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferredInstall = e;
+    var installBtn = document.getElementById("installBtn");
+    if (installBtn) installBtn.classList.remove("hidden");
+  });
+  var installBtn = document.getElementById("installBtn");
+  if (installBtn) {
+    installBtn.addEventListener("click", function () {
+      if (!deferredInstall) {
+        bubble("agent", "Chrome മെനുവിൽ ⋮ → 'Add to Home screen' ഉപയോഗിച്ച് ഇൻസ്റ്റാൾ ചെയ്യാം.");
+        return;
+      }
+      deferredInstall.prompt();
+      deferredInstall.userChoice.then(function () { deferredInstall = null; });
+    });
+  }
+
   // ---------------- Welcome ----------------
   bubble("agent", "നമസ്കാരം! ഞാൻ സേവ (Seva) — കേരള സർക്കാർ സേവനങ്ങളിൽ നിങ്ങളെ സഹായിക്കാനുള്ള അസിസ്റ്റന്റ്.\nറേഷൻ കാർഡ്, സർട്ടിഫിക്കറ്റ്, പെൻഷൻ, സ്കോളർഷിപ്പ്, പരാതി ട്രാക്കിംഗ്... എന്താണ് വേണ്ടത്?");
   if (voiceToggle.checked) playAudio("/static/tts/welcome.mp3").catch(function(){});

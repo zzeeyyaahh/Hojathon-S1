@@ -44,6 +44,16 @@ def index():
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest():
+    return FileResponse(os.path.join(STATIC_DIR, "manifest.webmanifest"), media_type="application/manifest+json")
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse(os.path.join(STATIC_DIR, "sw.js"), media_type="application/javascript")
+
+
 @app.post("/api/session", response_model=SessionResponse)
 def create_session():
     return SessionResponse(session_id=uuid.uuid4().hex[:16])

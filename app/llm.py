@@ -121,16 +121,24 @@ def _gemini_generate(messages: list, tools: list | None) -> LLMResponse:
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}"
             f":generateContent?key={config.GEMINI_API_KEY}"
         )
-        # Free tier is rate-limited (429). Retry with backoff before giving up on a model.
-        for attempt in (1, 2, 3):
+        # Free tier is rate-limited (429). Wait once for the window, then give up cleanly.
+        for attempt in (1, 2):
             try:
                 with httpx.Client(timeout=60) as client:
                     r = client.post(url, json=body)
                 data = r.json()
                 if "error" in data:
                     msg = str(data["error"].get("message", data["error"]))
-                    if (r.status_code in (429, 500, 503)) and attempt < 3:
-                        time.sleep(3 * attempt)
+                    if r.status_code == 429:
+                        if attempt == 1:
+                            time.sleep(min(_parse_retry_seconds(msg) + 5, 65))
+                            continue
+                        raise RuntimeError(
+                            f"{model}: rate limited, try again in about "
+                            f"{_parse_retry_seconds(msg):.0f}s"
+                        )
+                    if r.status_code in (500, 503) and attempt == 1:
+                        time.sleep(8)
                         continue
                     raise RuntimeError(f"{model}: {msg}")
                 candidate = data["candidates"][0]
@@ -150,11 +158,20 @@ def _gemini_generate(messages: list, tools: list | None) -> LLMResponse:
                         )
                 return LLMResponse(text=text, tool_calls=tool_calls)
             except httpx.HTTPError as e:
-                if attempt < 3:
-                    time.sleep(3 * attempt)
+                if attempt == 1:
+                    time.sleep(8)
                     continue
                 errors.append(f"{model}: {str(e)[:180]}")
+        errors.append(f"{model}: gave up after retries")
     raise RuntimeError("Gemini failed on all models: " + " || ".join(errors))
+
+
+def _parse_retry_seconds(msg: str) -> float:
+    """Gemini's 429 message includes 'Please retry in Xs'."""
+    try:
+        return float(msg.rsplit("retry in ", 1)[1].split("s")[0])
+    except (IndexError, ValueError):
+        return 15.0
 
 
 def generate(messages: list, tools: list | None) -> LLMResponse:

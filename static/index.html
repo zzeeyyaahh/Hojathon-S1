@@ -2,7 +2,13 @@
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0e5a4a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <title>സേവ — Kerala Civic Voice Assistant</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -41,6 +47,9 @@
     <label class="voice-toggle">
       <input type="checkbox" id="voiceToggle" checked> വോയ്സ് റെസ്പോൺസ് 🔊
     </label>
+    <div class="install-row">
+      <button id="installBtn" class="hidden install-btn">📲 ആപ്പായി ഇൻസ്റ്റാൾ ചെയ്യുക</button>
+    </div>
   </main>
 
   <script src="/static/app.js"></script>
