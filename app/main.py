@@ -67,8 +67,12 @@ async def chat(req: ChatRequest):
         raise HTTPException(400, "text is required")
     sid = req.session_id or "demo"
     reply = await _run_agent(sid, text, req.lang)
-    audio_path = await tts.synthesize(reply, req.lang)
-    audio_url = f"/static/tts/{os.path.basename(audio_path)}"
+    audio_url = ""
+    try:
+        audio_path = await tts.synthesize(reply, req.lang)
+        audio_url = f"/static/tts/{os.path.basename(audio_path)}"
+    except tts.TTSUnavailable:
+        pass
     return ChatResponse(session_id=sid, user_text=text, reply=reply, audio_url=audio_url)
 
 
@@ -98,5 +102,8 @@ async def _run_asr(content, filename, mime):
 
 @app.get("/api/tts")
 async def tts_endpoint(text: str = "ഹലോ", lang: str = "ml"):
-    path = await tts.synthesize(text, lang)
+    try:
+        path = await tts.synthesize(text, lang)
+    except tts.TTSUnavailable as e:
+        raise HTTPException(502, str(e))
     return FileResponse(path, media_type="audio/mpeg")
