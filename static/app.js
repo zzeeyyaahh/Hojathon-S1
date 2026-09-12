@@ -74,6 +74,7 @@
   var voiceToggle = document.getElementById("voiceToggle");
   var langToggle = document.getElementById("langToggle");
   var voiceToggleLabel = document.querySelector(".voice-toggle");
+  var welcomeEl = null;
 
   var sessionId = localStorage.getItem("seva_session") || "";
   if (!sessionId) {
@@ -101,6 +102,7 @@
     voiceToggleLabel.childNodes[1].textContent = " " + t("voiceLabel") + " 🔊";
     var installBtn = document.getElementById("installBtn");
     if (installBtn) installBtn.textContent = t("install");
+    if (welcomeEl) welcomeEl.textContent = t("welcome");
   }
 
   function setLang(next) {
@@ -294,7 +296,7 @@
 
   // ---------------- Welcome (one-time) ----------------
   applyLang();
-  bubble("agent", t("welcome"));
+  welcomeEl = bubble("agent", t("welcome"));
   if (voiceToggle.checked) {
     var welcomeUrl = "/api/tts?lang=" + lang + "&text=" + encodeURIComponent(I18N[lang].welcome);
     playAudio(welcomeUrl).catch(function(){});
