@@ -1,7 +1,7 @@
 import inspect
 import json
 
-from . import config, db, kb
+from . import browser, config, db, kb
 
 _WIZARDS: dict = {}
 _PROFILE_WIZARDS: dict = {}
@@ -283,6 +283,33 @@ def set_reminder(topic: str, remind_date: str, ctx) -> dict:
     }
 
 
+# ---------------- Browser-driven portal automation ----------------
+
+def browser_open(url: str = "", ctx: dict | None = None) -> dict:
+    return browser.browser.open(url)
+
+
+def browser_fill(label: str, value: str, ctx: dict | None = None) -> dict:
+    return browser.browser.fill(label, value)
+
+
+def browser_click(text: str, ctx: dict | None = None) -> dict:
+    return browser.browser.click(text)
+
+
+def browser_page_text(_args, ctx: dict | None = None) -> dict:
+    return {"text": browser.browser.text()["text"]}
+
+
+def browser_status(_args, ctx: dict | None = None) -> dict:
+    return browser.browser.status()
+
+
+def browser_close(_args, ctx: dict | None = None) -> dict:
+    browser.browser.close()
+    return {"closed": True}
+
+
 TOOL_HANDLERS = {
     "search_service": search_service,
     "list_services": list_services,
@@ -297,6 +324,12 @@ TOOL_HANDLERS = {
     "get_user_profile": get_user_profile,
     "setup_profile": setup_profile,
     "set_reminder": set_reminder,
+    "browser_open": browser_open,
+    "browser_fill": browser_fill,
+    "browser_click": browser_click,
+    "browser_page_text": browser_page_text,
+    "browser_status": browser_status,
+    "browser_close": browser_close,
 }
 
 
@@ -469,4 +502,55 @@ _register(
         },
         "required": ["topic", "remind_date"],
     },
+)
+
+_register(
+    name="browser_open",
+    description="Open a government portal URL in the visible browser window. Use the service's portal URL when known.",
+    parameters={
+        "type": "object",
+        "properties": {"url": {"type": "string", "description": "full URL, e.g. https://supplies.kerala.gov.in"}},
+        "required": ["url"],
+    },
+)
+
+_register(
+    name="browser_fill",
+    description="Type a value into a form field in the open browser. Pass the field label shown on the page (or its label/placeholder text).",
+    parameters={
+        "type": "object",
+        "properties": {
+            "label": {"type": "string", "description": "the field's label or placeholder text as seen on the page"},
+            "value": {"type": "string", "description": "text to type into the field"},
+        },
+        "required": ["label", "value"],
+    },
+)
+
+_register(
+    name="browser_click",
+    description="Click a button or link on the open page by its visible text.",
+    parameters={
+        "type": "object",
+        "properties": {"text": {"type": "string", "description": "button/link text"}},
+        "required": ["text"],
+    },
+)
+
+_register(
+    name="browser_page_text",
+    description="Read the visible text of the current browser page. Call after opening a page or clicking to see what happened.",
+    parameters={"type": "object", "properties": {}},
+)
+
+_register(
+    name="browser_status",
+    description="Check the browser state: current URL, title, loading status, and whether the page is asking the user for login/OTP/captcha.",
+    parameters={"type": "object", "properties": {}},
+)
+
+_register(
+    name="browser_close",
+    description="Close the browser window.",
+    parameters={"type": "object", "properties": {}},
 )

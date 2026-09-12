@@ -1,16 +1,19 @@
+import base64
 import os
 from fastapi import FastAPI, File, HTTPException, UploadFile, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from . import agent, asr, db, tts
+from . import agent, asr, browser, db, kb, tts
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(_BASE, "..", "static")
 TTS_DIR = os.path.join(STATIC_DIR, "tts")
 
 app = FastAPI(title="Sevana Voice — Kerala Civic Agent")
+# Ensure one-off workers and test clients get the same schema as the web server.
+db.init_db()
 
 
 class ChatRequest(BaseModel):
@@ -32,6 +35,39 @@ class ChatResponse(BaseModel):
     user_text: str
     reply: str
     audio_url: str = ""
+
+
+class WorkflowStartRequest(BaseModel):
+    service_id: str
+
+
+class WorkflowFieldsRequest(BaseModel):
+    values: dict[str, str] = Field(default_factory=dict)
+
+
+class BrowserOpenRequest(BaseModel):
+    url: str
+
+
+def _service_or_404(service_id: str) -> dict:
+    service = kb.get_service(service_id)
+    if not service:
+        raise HTTPException(404, "Unknown service.")
+    return service
+
+
+def _workflow_view(draft: dict, service: dict) -> dict:
+    payload = draft["payload"]
+    fields = service.get("form_fields", [])
+    missing = [field for field in fields if not str(payload.get(field["field"], "")).strip()]
+    return {
+        "id": draft["id"], "service": {key: service.get(key) for key in ("id", "name_en", "name_ml", "portal", "documents_en", "documents")},
+        "status": draft["status"], "values": payload,
+        "fields": fields,
+        "next_field": missing[0] if missing else None,
+        "ready_for_review": not missing,
+        "reviewed_at": draft["reviewed_at"],
+    }
 
 
 @app.on_event("startup")
@@ -117,10 +153,111 @@ def applications(authorization: str = Header(default="")):
     return {"applications": db.list_applications(user["id"])}
 
 
+@app.post("/api/workflows/start")
+def start_workflow(req: WorkflowStartRequest, authorization: str = Header(default="")):
+    """Create a service-specific draft and prefill only facts the user saved earlier."""
+    user = _current_user(authorization)
+    service = _service_or_404(req.service_id)
+    profile = db.get_profile(user["id"])
+    aliases = {"applicant_name": "name"}
+    values = {}
+    for field in service.get("form_fields", []):
+        name = field["field"]
+        remembered = profile.get(name) or profile.get(aliases.get(name, ""))
+        if remembered:
+            values[name] = remembered
+    return _workflow_view(db.create_draft(user["id"], service["id"], values), service)
+
+
+@app.get("/api/workflows/{draft_id}")
+def get_workflow(draft_id: str, authorization: str = Header(default="")):
+    user = _current_user(authorization)
+    draft = db.get_draft(draft_id, user["id"])
+    if not draft:
+        raise HTTPException(404, "Draft not found.")
+    return _workflow_view(draft, _service_or_404(draft["service_id"]))
+
+
+@app.put("/api/workflows/{draft_id}/fields")
+def save_workflow_fields(draft_id: str, req: WorkflowFieldsRequest, authorization: str = Header(default="")):
+    user = _current_user(authorization)
+    draft = db.get_draft(draft_id, user["id"])
+    if not draft or draft["status"] != "collecting":
+        raise HTTPException(409, "This draft cannot be edited.")
+    service = _service_or_404(draft["service_id"])
+    allowed = {field["field"] for field in service.get("form_fields", [])}
+    updates = {key: str(value).strip() for key, value in req.values.items() if key in allowed and str(value).strip()}
+    payload = {**draft["payload"], **updates}
+    # The citizen asked for remembered answers. Never store portal passwords, OTPs, or CAPTCHA data.
+    for key, value in updates.items():
+        db.set_profile(user["id"], key, value)
+    saved = db.update_draft(draft_id, user["id"], payload)
+    return _workflow_view(saved, service)
+
+
+@app.post("/api/workflows/{draft_id}/review")
+def review_workflow(draft_id: str, authorization: str = Header(default="")):
+    user = _current_user(authorization)
+    draft = db.get_draft(draft_id, user["id"])
+    if not draft:
+        raise HTTPException(404, "Draft not found.")
+    service = _service_or_404(draft["service_id"])
+    view = _workflow_view(draft, service)
+    if not view["ready_for_review"]:
+        raise HTTPException(400, "Complete all required fields before review.")
+    if draft["payload"].get("registered_mobile") != "yes":
+        raise HTTPException(400, "UIDAI online updates require an Aadhaar-linked mobile number for OTP. Please use an Aadhaar Enrolment Centre.")
+    reviewed = db.update_draft(draft_id, user["id"], draft["payload"], status="reviewed", reviewed=True)
+    return _workflow_view(reviewed, service)
+
+
+@app.post("/api/workflows/{draft_id}/submit")
+def submit_workflow(draft_id: str, authorization: str = Header(default="")):
+    user = _current_user(authorization)
+    draft = db.get_draft(draft_id, user["id"])
+    if not draft or draft["status"] != "reviewed":
+        raise HTTPException(409, "Review the completed form before submitting.")
+    service = _service_or_404(draft["service_id"])
+    receipt = db.create_application(user["id"], service["id"], draft["payload"], status="Ready for official portal")
+    db.update_draft(draft_id, user["id"], draft["payload"], status="submitted")
+    return {
+        "submitted": True,
+        "receipt": receipt,
+        "portal": service.get("portal"),
+        "message": "Your reviewed draft is ready for the official portal. A live portal connector has not been configured yet.",
+    }
+
+
 async def _run_agent(sid: str, text: str, lang: str = "ml") -> str:
     import asyncio
 
     return await asyncio.to_thread(agent.run_turn, sid, text, lang)
+
+
+@app.post("/api/browser/open")
+def browser_open(req: BrowserOpenRequest, authorization: str = Header(default="")):
+    """Open a portal in the visible browser window (e.g. a quick 'open site' button)."""
+    _current_user(authorization)
+    return browser.browser.open(req.url)
+
+
+@app.get("/api/browser/view")
+def browser_view(authorization: str = Header(default="")):
+    """Live view of the shared portal window: URL, titles, loading, needs_user, and a screenshot."""
+    _current_user(authorization)
+    status = browser.browser.status()
+    if status["active"]:
+        png = browser.browser.screenshot()
+        if png:
+            status["screenshot"] = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+    return status
+
+
+@app.post("/api/browser/close")
+def browser_close(authorization: str = Header(default="")):
+    _current_user(authorization)
+    browser.browser.close()
+    return {"closed": True}
 
 
 @app.post("/api/asr")

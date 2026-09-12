@@ -233,7 +233,7 @@
       "portal": "https://myaadhaar.uidai.gov.in",
       "aliases": ["aadhaar", "ആധാർ", "aadhaar update", "uidai", "name change aadhaar"],
       "summary_ml": "ആധാറിലെ പേര്, വിലാസം, ജനനതീയതി തുടങ്ങിയവ അപ്ഡേറ്റ് ചെയ്യാനുള്ള സേവനം.",
-      "summary_en": "Update name, address, date of birth on Aadhaar.",
+      "summary_en": "Prepare an Aadhaar address or document-update request for review before opening myAadhaar.",
       "eligibility": [
         {
           "field": "has_aadhaar",
@@ -253,8 +253,23 @@
       ],
       "form_fields": [
         {"field": "aadhaar", "label_ml": "ആധാർ നമ്പർ", "label_en": "Aadhaar number"},
-        {"field": "update_type", "label_ml": "അപ്ഡേറ്റ് തരം", "label_en": "Update type"},
-        {"field": "new_value", "label_ml": "പുതിയ വിവരം", "label_en": "New value"}
+        {"field": "update_type", "label_ml": "അപ്ഡേറ്റ് തരം", "label_en": "Online update type", "options": [
+          {"value": "address", "label_en": "Address update"},
+          {"value": "document_update", "label_en": "Document update"}
+        ]},
+        {"field": "registered_mobile", "label_ml": "ആധാറുമായി ലിങ്ക് ചെയ്ത മൊബൈൽ നമ്പർ ഉണ്ടോ?", "label_en": "Is your mobile number registered with Aadhaar?", "options": [
+          {"value": "yes", "label_en": "Yes — I can receive the UIDAI OTP"},
+          {"value": "no", "label_en": "No — I need an Aadhaar Enrolment Centre"}
+        ]},
+        {"field": "new_value", "label_ml": "പുതിയ വിലാസം / അപ്ഡേറ്റ് വിശദാംശം", "label_en": "New address or update details"},
+        {"field": "supporting_document", "label_ml": "പിന്തുണ രേഖ", "label_en": "Supporting document to upload on UIDAI", "options": [
+          {"value": "passport", "label_en": "Indian passport"},
+          {"value": "voter_id", "label_en": "Voter ID"},
+          {"value": "bank_passbook", "label_en": "Bank/Post Office passbook"},
+          {"value": "utility_bill", "label_en": "Recent utility bill"},
+          {"value": "rent_agreement", "label_en": "Valid rent/lease agreement"},
+          {"value": "other_valid_poa", "label_en": "Other valid UIDAI supporting document"}
+        ]}
       ],
       "center": "online"
     },

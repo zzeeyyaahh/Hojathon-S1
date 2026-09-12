@@ -90,14 +90,13 @@ def tool2(name, args):
     return tools.run_tool(name, json.dumps(args, ensure_ascii=False), ctx2)
 
 r = tool2("setup_profile", {"answers": {"name": "Anu"}})
-assert r["done"] is False and r["current_field"] == "age", r
+assert r["done"] is False and r["current_field"] == "district", r
 
-r = tool2("setup_profile", {"answers": {"age": 35, "family_size": 4, "annual_income": 300000,
-                                        "district": "Kozhikode", "occupation": "teacher"}})
+r = tool2("setup_profile", {"answers": {"district": "Kozhikode"}})
 assert r["done"] is True and r["profile"]["name"] == "Anu", r
 
 r = tool2("get_user_profile", {})
-assert r["profile"]["occupation"] == "teacher" and r["profile"]["family_size"] == "4", r
+assert r["profile"]["district"] == "Kozhikode" and r["profile"]["name"] == "Anu", r
 
 # Form wizard autofill: bare answer goes to the waiting field
 ctx3 = {"session_id": "t3"}

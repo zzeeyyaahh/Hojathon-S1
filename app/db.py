@@ -86,6 +86,17 @@ def init_db():
                 status TEXT,
                 submitted_at TEXT)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS application_drafts(
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                service_id TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                status TEXT NOT NULL,
+                reviewed_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL)"""
+        )
     _seed_complaints()
 
 
@@ -151,6 +162,45 @@ def list_applications(session_id: str) -> list:
     with _connect() as c:
         rows = c.execute("SELECT id, service_id, status, submitted_at FROM applications WHERE session_id=? ORDER BY submitted_at DESC", (session_id,)).fetchall()
     return [dict(row) for row in rows]
+
+
+def create_draft(user_id: str, service_id: str, payload: dict) -> dict:
+    import json as _json
+    now = datetime.now().isoformat()
+    draft = {"id": "drf_" + uuid.uuid4().hex, "user_id": user_id, "service_id": service_id,
+             "payload": payload, "status": "collecting", "reviewed_at": None,
+             "created_at": now, "updated_at": now}
+    with _connect() as c:
+        c.execute("""INSERT INTO application_drafts(id,user_id,service_id,payload,status,reviewed_at,created_at,updated_at)
+                     VALUES (?,?,?,?,?,?,?,?)""",
+                  (draft["id"], user_id, service_id, _json.dumps(payload, ensure_ascii=False), "collecting", None, now, now))
+    return draft
+
+
+def get_draft(draft_id: str, user_id: str) -> dict | None:
+    import json as _json
+    with _connect() as c:
+        row = c.execute("SELECT * FROM application_drafts WHERE id=? AND user_id=?", (draft_id, user_id)).fetchone()
+    if not row:
+        return None
+    item = dict(row)
+    item["payload"] = _json.loads(item["payload"])
+    return item
+
+
+def update_draft(draft_id: str, user_id: str, payload: dict, status: str | None = None, reviewed: bool = False) -> dict | None:
+    import json as _json
+    existing = get_draft(draft_id, user_id)
+    if not existing:
+        return None
+    now = datetime.now().isoformat()
+    next_status = status or existing["status"]
+    reviewed_at = now if reviewed else existing["reviewed_at"]
+    with _connect() as c:
+        c.execute("""UPDATE application_drafts SET payload=?, status=?, reviewed_at=?, updated_at=?
+                     WHERE id=? AND user_id=?""",
+                  (_json.dumps(payload, ensure_ascii=False), next_status, reviewed_at, now, draft_id, user_id))
+    return get_draft(draft_id, user_id)
 
 
 def _seed_complaints():

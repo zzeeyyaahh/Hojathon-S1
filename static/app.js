@@ -4,8 +4,8 @@
   // ---------- Language support ----------
   var I18N = {
     ml: {
-      title: "സേവ — Civic Voice Assistant",
-      tagline: "കേരള സർക്കാർ സേവനങ്ങൾ, നിങ്ങളുടെ ഭാഷയിൽ",
+      title: "സേവ — Aadhaar Update Assistant",
+      tagline: "ആധാർ അപ്ഡേറ്റ്, നിങ്ങളുടെ ഭാഷയിൽ",
       toggleShow: "EN",
       toggleAlt: "English ഭാഷയിലേക്ക് മാറുക",
       chips: [
@@ -23,7 +23,8 @@
       install: "📲 ആപ്പായി ഇൻസ്റ്റാൾ ചെയ്യുക",
       installAlt: "Chrome മെനുവിൽ ⋮ → 'Add to Home screen' ഉപയോഗിച്ച് ഇൻസ്റ്റാൾ ചെയ്യാം.",
       speakerTitle: "വീണ്ടും കേൾക്കുക",
-      welcome: "നമസ്കാരം! ഞാൻ സേവ (Seva) — കേരള സർക്കാർ സേവനങ്ങളിൽ നിങ്ങളെ സഹായിക്കാനുള്ള അസിസ്റ്റന്റ്.\nറേഷൻ കാർഡ്, സർട്ടിഫിക്കറ്റ്, പെൻഷൻ, സ്കോളർഷിപ്പ്, പരാതി ട്രാക്കിംഗ്... എന്താണ് വേണ്ടത്?",
+      browserNeeds: "Portal is waiting for you — complete the OTP / CAPTCHA in the open window yourself.",
+      welcome: "നമസ്കാരം! ഞാൻ സേവ (Seva) — ആധാർ address/document update തയ്യാറാക്കാൻ സഹായിക്കും. ആവശ്യമായ വിവരങ്ങൾ എടുത്ത്, എല്ലാം review ചെയ്യാൻ കാണിക്കും.",
       errGeneric: "എന്തോ പ്രശ്നം സംഭവിച്ചു. വീണ്ടും ശ്രമിക്കുക.",
       errServer: "സെർവറുമായി ബന്ധപ്പെടാനായില്ല.",
       errNoSpeech: "ഈ ബ്രൗസറിൽ വോയ്സ് പിന്തുണയില്ല. Google Chrome ഉപയോഗിക്കുക, അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്യുക.",
@@ -31,8 +32,8 @@
       speechLang: "ml-IN",
     },
     en: {
-      title: "Seva — Civic Voice Assistant",
-      tagline: "Kerala government services, in your language",
+      title: "Seva — Aadhaar Update Assistant",
+      tagline: "Aadhaar updates, in your language",
       toggleShow: "മ",
       toggleAlt: "Switch to Malayalam",
       chips: [
@@ -50,7 +51,8 @@
       install: "📲 Install as App",
       installAlt: "Use Chrome menu ⋮ → 'Add to Home screen' to install.",
       speakerTitle: "Play again",
-      welcome: "Namaste! I am Seva — your assistant for Kerala government services.\nRation cards, certificates, pensions, scholarships, complaint tracking... How can I help?",
+      browserNeeds: "The portal needs you — complete the OTP / CAPTCHA in the open window yourself.",
+      welcome: "Namaste! I am Seva — your Aadhaar update assistant. I prepare address or document updates, then show you everything for review.",
       errGeneric: "Something went wrong. Please try again.",
       errServer: "Could not reach the server.",
       errNoSpeech: "Voice input is not supported in this browser. Use Google Chrome, or type instead.",
@@ -115,6 +117,153 @@
     fetch("/api/me", { headers: authHeaders() }).then(function (r) { if (r.ok) enterApp(); else localStorage.removeItem("seva_token"); }).catch(function () {});
   }
 
+  // ---------- Approval-first official form workflow ----------
+  var workflowPanel = document.getElementById("workflowPanel");
+  var activeWorkflow = null;
+
+  function api(url, options) {
+    options = options || {};
+    options.headers = authHeaders(options.headers || {});
+    return fetch(url, options).then(function (r) {
+      return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+    });
+  }
+
+  function workflowMessage(text) {
+    workflowPanel.classList.remove("hidden");
+    workflowPanel.textContent = text;
+  }
+
+  function renderWorkflow(data) {
+    activeWorkflow = data;
+    workflowPanel.classList.remove("hidden");
+    workflowPanel.textContent = "";
+    var title = document.createElement("h2");
+    title.textContent = data.service.name_en + " — private draft";
+    workflowPanel.appendChild(title);
+    var note = document.createElement("p");
+    note.textContent = data.ready_for_review ? "All required details are ready. Review every value before submission." : "Only service-required fields are asked. Saved answers are prefilled from your account.";
+    workflowPanel.appendChild(note);
+
+    if (data.status === "reviewed") {
+      var review = document.createElement("table"); review.className = "workflow-review";
+      data.fields.forEach(function (field) {
+        var row = review.insertRow();
+        var label = row.insertCell(); var value = row.insertCell();
+        label.textContent = field.label_en; value.textContent = data.values[field.field] || "";
+      });
+      workflowPanel.appendChild(review);
+      var submitActions = document.createElement("div"); submitActions.className = "workflow-actions";
+      var submit = document.createElement("button"); submit.textContent = "Verify & submit";
+      submit.onclick = submitWorkflow;
+      submitActions.appendChild(submit); workflowPanel.appendChild(submitActions);
+      return;
+    }
+    if (data.status === "submitted") { workflowMessage("Your request was submitted to the Seva workflow. Check My Applications for its receipt and portal status."); return; }
+
+    data.fields.forEach(function (field) {
+      var label = document.createElement("label"); label.htmlFor = "wf_" + field.field; label.textContent = field.label_en;
+      var input;
+      if (field.options && field.options.length) {
+        input = document.createElement("select");
+        var placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "Select update type"; placeholder.disabled = true; placeholder.selected = !data.values[field.field]; input.appendChild(placeholder);
+        field.options.forEach(function (option) {
+          var item = document.createElement("option"); item.value = option.value; item.textContent = option.label_en;
+          if (data.values[field.field] === option.value) item.selected = true;
+          input.appendChild(item);
+        });
+      } else {
+        input = document.createElement("input"); input.value = data.values[field.field] || ""; input.autocomplete = "off";
+      }
+      input.id = "wf_" + field.field; input.name = field.field;
+      workflowPanel.appendChild(label); workflowPanel.appendChild(input);
+    });
+    var actions = document.createElement("div"); actions.className = "workflow-actions";
+    var save = document.createElement("button"); save.textContent = data.ready_for_review ? "Review completed form" : "Save & continue"; save.onclick = saveWorkflow;
+    actions.appendChild(save); workflowPanel.appendChild(actions);
+  }
+
+  function startAadhaarWorkflow() {
+    if (!authToken) { workflowMessage("Sign in first to keep this form private."); return; }
+    api("/api/workflows/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ service_id: "aadhaar_update" }) })
+      .then(function (result) { if (!result.ok) workflowMessage(result.body.detail || "Could not start the form."); else renderWorkflow(result.body); });
+  }
+
+  function saveWorkflow() {
+    var values = {};
+    activeWorkflow.fields.forEach(function (field) { values[field.field] = document.getElementById("wf_" + field.field).value; });
+    api("/api/workflows/" + activeWorkflow.id + "/fields", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ values: values }) })
+      .then(function (result) {
+        if (!result.ok) { workflowMessage(result.body.detail || "Could not save the form."); return; }
+        if (result.body.ready_for_review) api("/api/workflows/" + activeWorkflow.id + "/review", { method: "POST" }).then(function (review) { if (review.ok) renderWorkflow(review.body); else workflowMessage(review.body.detail); });
+        else renderWorkflow(result.body);
+      });
+  }
+
+  function submitWorkflow() {
+    api("/api/workflows/" + activeWorkflow.id + "/submit", { method: "POST" }).then(function (result) {
+      if (!result.ok) { workflowMessage(result.body.detail || "Could not submit."); return; }
+      workflowPanel.textContent = "";
+      var msg = document.createElement("p"); msg.textContent = result.body.message + " Receipt: " + result.body.receipt;
+      workflowPanel.appendChild(msg);
+      var portal = document.createElement("a"); portal.href = result.body.portal; portal.target = "_blank"; portal.rel = "noopener"; portal.textContent = "Open official Aadhaar portal";
+      workflowPanel.appendChild(portal);
+    });
+  }
+
+  document.getElementById("aadhaarStart").addEventListener("click", startAadhaarWorkflow);
+
+  // ---------- Live browser side-panel ----------
+  var browserPanel = document.getElementById("browserPanel");
+  var browserShot = document.getElementById("browserShot");
+  var browserStatusEl = document.getElementById("browserStatus");
+  var browserAllow = document.getElementById("browserAllow");
+  var browserPoll = null;
+
+  function setBrowserPanel(active, data) {
+    if (!active) { stopBrowserPoll(); browserPanel.classList.add("hidden"); return; }
+    browserPanel.classList.remove("hidden");
+    if (data.screenshot) browserShot.src = data.screenshot;
+    var bits = [];
+    if (data.title) bits.push(data.title);
+    if (data.status) bits.push("(" + data.status + ")");
+    if (data.needs_user) bits.push("⛔ " + t("browserNeeds"));
+    browserStatusEl.textContent = bits.join("  ");
+    browserAllow.classList.toggle("hidden", !data.needs_user);
+  }
+
+  function syncBrowserPanel() {
+    fetch("/api/browser/view", { headers: authHeaders() })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.active) { setBrowserPanel(true, d); startBrowserPoll(); } else { stopBrowserPoll(); } })
+      .catch(function () {});
+  }
+
+  function startBrowserPoll() {
+    if (browserPoll) return;
+    browserPoll = setInterval(function () {
+      fetch("/api/browser/view", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (d && d.active) setBrowserPanel(true, d); else { stopBrowserPoll(); browserPanel.classList.add("hidden"); } })
+        .catch(function () {});
+    }, 1600);
+  }
+
+  function stopBrowserPoll() {
+    if (browserPoll) { clearInterval(browserPoll); browserPoll = null; }
+  }
+
+  browserAllow.addEventListener("click", function () {
+    browserAllow.classList.add("hidden");
+    sendToAgent(lang === "ml" ? "ശരി, തുടരുക" : "OK, go ahead. I have completed it.");
+  });
+  document.getElementById("browserClose").addEventListener("click", function () {
+    fetch("/api/browser/close", { method: "POST", headers: authHeaders() }).finally(function () {
+      stopBrowserPoll(); browserPanel.classList.add("hidden");
+    });
+  });
+  syncBrowserPanel();
+
   // ---------- Static UI language ----------
   function applyLang() {
     document.title = t("title");
@@ -125,13 +274,6 @@
     textInput.placeholder = t("placeholder");
     micBtn.title = t("micTitle");
     sendBtn.title = t("sendTitle");
-    document.querySelectorAll(".chip").forEach(function (chip, i) {
-      var c = I18N[lang].chips[i];
-      if (c) {
-        chip.textContent = c.label;
-        chip.dataset.msg = c.msg;
-      }
-    });
     voiceToggleLabel.childNodes[1].textContent = " " + t("voiceLabel") + " 🔊";
     var installBtn = document.getElementById("installBtn");
     if (installBtn) installBtn.textContent = t("install");
@@ -204,6 +346,7 @@
         if (voiceToggle.checked && data.audio_url) {
           playAudio(data.audio_url).catch(function(){});
         }
+        syncBrowserPanel();
       })
       .catch(function () {
         setTyping(false);
@@ -295,14 +438,6 @@
   sendBtn.addEventListener("click", function () { sendToAgent(textInput.value.trim()); });
   textInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") sendToAgent(textInput.value.trim());
-  });
-
-  // ---------------- Chips ----------------
-  document.querySelectorAll(".chip").forEach(function (chip) {
-    chip.addEventListener("click", function () {
-      if (listening) stopRecognition();
-      sendToAgent(chip.dataset.msg);
-    });
   });
 
   // ---------------- Install as app (PWA) ----------------

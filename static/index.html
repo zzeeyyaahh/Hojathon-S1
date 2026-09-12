@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-  <title>സേവ — Kerala Civic Voice Assistant</title>
+  <title>സേവ — Aadhaar Update Assistant</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -31,8 +31,8 @@
   <header>
     <div class="logo">സേവ</div>
     <div class="head-text">
-      <h1>സേവ — Civic Voice Assistant</h1>
-      <p>കേരള സർക്കാർ സേവനങ്ങൾ, നിങ്ങളുടെ ഭാഷയിൽ</p>
+      <h1>സേവ — Aadhaar Update Assistant</h1>
+      <p>ആധാർ അപ്ഡേറ്റ്, നിങ്ങളുടെ ഭാഷയിൽ</p>
     </div>
     <button id="langToggle" class="lang-toggle" title="Change language">EN</button>
     <button id="logoutBtn" class="logout hidden" title="Sign out">Sign out</button>
@@ -40,11 +40,18 @@
 
   <main>
     <section id="chips">
-      <button class="chip" data-msg="എനിക്ക് റേഷൻ കാർഡ് കിട്ടാൻ എന്താണ് വേണ്ടത്?">🚩 റേഷൻ കാർഡ്</button>
-      <button class="chip" data-msg="എന്റെ പരാതി എന്ത് നിലയിലാണ്? ഐഡി GR-2026-1187">📋 പരാതി ട്രാക്ക്</button>
-      <button class="chip" data-msg="സ്കോളർഷിപ്പിന് യോഗ്യനാണോ എന്ന് പരിശോധിക്കാം">🎓 സ്കോളർഷിപ്പ്</button>
-      <button class="chip" data-msg="എന്തൊക്കെ സേവനങ്ങൾ ഉണ്ട്?">🏛️ സേവനങ്ങൾ</button>
-      <button class="chip" data-msg="എന്റെ വിവരങ്ങൾ രജിസ്റ്റർ ചെയ്യാം">🔐 സൈൻ അപ്പ്</button>
+      <button id="aadhaarStart" class="chip">🪪 Start Aadhaar update</button>
+    </section>
+
+<section id="workflowPanel" class="workflow-panel hidden" aria-live="polite"></section>
+
+    <section id="browserPanel" class="browser-panel hidden">
+      <img id="browserShot" alt="Live view of the official portal window">
+      <div id="browserStatus" class="browser-status">Preparing the portal…</div>
+      <div class="browser-actions">
+        <button id="browserAllow" class="btn-allow hidden">✅ Allow — continue</button>
+        <button id="browserClose" class="btn-close">✕ Close</button>
+      </div>
     </section>
 
     <section id="chat" aria-live="polite"></section>

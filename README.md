@@ -50,21 +50,29 @@ Replace the placeholders below with your own project's details — this is what 
 
 ### Project Name
 
+Seva — multilingual civic-service action agent
+
 ### Team
 
 ### Problem Statement
 
 What problem are you solving, and why does it call for an agent rather than a static script or a plain UI?
 
+Government forms are difficult to navigate when the citizen is most comfortable speaking Malayalam. Seva turns a short voice or typed request into a guided task: it identifies the service, collects required facts, checks eligibility, prepares the form, and reports status. This requires an agent because the next step depends on the service and facts already known.
+
 ### Proposed Solution
 
 Explain your solution and how your agent approaches the problem.
 
+Seva is a Malayalam/English voice-and-text assistant with a private account for every citizen. It maintains a scoped profile and application history for the signed-in user, uses service-specific form schemas, and gives a concise update after each step.
+
+For a production official-portal connection, Seva must use that portal's approved API or browser integration. It shows the completed form and requires explicit citizen approval before submission. OTP, CAPTCHA, payment, and identity challenges remain with the citizen; the agent never bypasses them.
+
 ### Key Features
 
-* Feature 1
-* Feature 2
-* Feature 3
+* Malayalam and English typed conversations, browser voice input, and spoken responses.
+* Individual password-protected accounts; all profiles, conversations, and application records are scoped to the authenticated user.
+* Guided eligibility/form workflow and private status updates, with a clear approval boundary for official sites.
 
 ### Technology Stack
 
@@ -72,16 +80,26 @@ Describe whatever stack you chose. None of the categories below are required —
 
 | Category | Technology |
 | -------- | ---------- |
-| Frontend |            |
-| Backend  |            |
-| Database |            |
-| AI/ML    |            |
-| APIs     |            |
-| Other    |            |
+| Frontend | Vanilla HTML, CSS, JavaScript, PWA |
+| Backend  | FastAPI |
+| Database | SQLite demo (use a managed encrypted database in production) |
+| AI/ML    | Tool-calling LLM with ASR/TTS adapters |
+| APIs     | Approved official-government portal integrations |
+| Other    | PBKDF2 password hashing and expiring opaque tokens |
 
 ### How It Works
 
 Explain your agent's architecture: what tools or APIs it can call, how it plans and decides what to do next, and what a full run through your system looks like. Add diagrams if they help.
+
+```
+Citizen (Malayalam/English voice or text)
+  → account-authenticated Seva session
+  → intent + service lookup → eligibility / field-by-field form workflow
+  → review + citizen approval → approved official portal connection
+  → portal receipt/status → private application updates
+```
+
+This repository includes a safe local portal simulator for the form/tracking experience. Connecting a live portal needs each department's written authorization and approved integration; it is deliberately not a CAPTCHA or OTP circumvention tool.
 
 ### Setup & Installation
 
