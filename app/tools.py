@@ -1,8 +1,9 @@
 import json
 
-from . import db, kb
+from . import config, db, kb
 
 _WIZARDS: dict = {}
+_PROFILE_WIZARDS: dict = {}
 
 FUNCTION_SCHEMAS: list = []
 
@@ -195,6 +196,34 @@ def get_user_profile(_args, ctx) -> dict:
     return {"profile": db.get_profile(ctx["session_id"])}
 
 
+def setup_profile(answers, ctx) -> dict:
+    sid = ctx["session_id"]
+    saved = db.get_profile(sid)
+    given = _flatten({}, answers)
+
+    for k, v in given.items():
+        if v is not None and str(v).strip():
+            db.set_profile(sid, k, str(v).strip())
+            saved[k] = str(v).strip()
+
+    remaining = [f for f in config.PROFILE_FIELDS if not saved.get(f["field"])]
+    if remaining:
+        nxt = remaining[0]
+        return {
+            "done": False,
+            "current_field": nxt["field"],
+            "current_field_label_ml": nxt["label_ml"],
+            "current_field_label_en": nxt["label_en"],
+            "progress_ml": f"{len(config.PROFILE_FIELDS) - len(remaining)}/{len(config.PROFILE_FIELDS)}",
+        }
+    return {
+        "done": True,
+        "profile": saved,
+        "message_ml": "നിങ്ങളുടെ വിവരങ്ങൾ രജിസ്റ്റർ ചെയ്തു! ഇനി എല്ലാ അർഹതാ പരിശോധനകളും ഈ വിവരങ്ങൾ ഉപയോഗിച്ച് നടക്കും.",
+        "message_en": "Your profile is saved! All eligibility checks will now use it.",
+    }
+
+
 def set_reminder(topic: str, remind_date: str, ctx) -> dict:
     db.add_reminder(ctx["session_id"], topic or "", remind_date or "")
     return {
@@ -217,6 +246,7 @@ TOOL_HANDLERS = {
     "route_to_department": route_to_department,
     "save_user_profile_field": save_profile,
     "get_user_profile": get_user_profile,
+    "setup_profile": setup_profile,
     "set_reminder": set_reminder,
 }
 
@@ -352,6 +382,18 @@ _register(
     name="get_user_profile",
     description="Get everything remembered about this user.",
     parameters={"type": "object", "properties": {}},
+)
+
+_register(
+    name="setup_profile",
+    description="Sign-up / profile setup wizard. Call it when the user wants to register their details (or when their profile is mostly empty). Pass the latest field answer(s) only. It returns the next profile question to ask. Re-invoke it as each answer arrives, SAVING each field into the profile automatically. Always call get_user_profile before eligibility checks and supply saved profile facts as the answers.",
+    parameters={
+        "type": "object",
+        "properties": {
+            "answers": {"type": "object", "description": "latest profile field -> value"},
+        },
+        "required": ["answers"],
+    },
 )
 
 _register(

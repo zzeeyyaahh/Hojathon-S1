@@ -75,4 +75,15 @@ assert r["saved"], r
 r = tool("get_user_profile", {})
 assert r["profile"].get("district") == "Ernakulam", r
 
+# Profile sign-up wizard
+r = tool("setup_profile", {"answers": {"name": "Anu"}})
+assert r["done"] is False and r["current_field"] == "age", r
+
+r = tool("setup_profile", {"answers": {"age": 35, "family_size": 4, "annual_income": 300000,
+                                       "district": "Kozhikode", "occupation": "teacher"}})
+assert r["done"] is True and r["profile"]["name"] == "Anu", r
+
+r = tool("get_user_profile", {})
+assert r["profile"]["occupation"] == "teacher" and r["profile"]["family_size"] == "4", r
+
 print("ALL TOOL TESTS PASSED")
